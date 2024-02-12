@@ -1,5 +1,5 @@
-#ifndef _SERVICE_H_
-#define _SERVICE_H_
+#ifndef _MONOPOLY_SERVICE_H_
+#define _MONOPOLY_SERVICE_H_
 
 #include <memory>
 #include "asio_common.h"
@@ -26,4 +26,4 @@ private:
     std::string ProcessRequest(asio::streambuf & request);
 };
 
-#endif // !_SERVICE_H_
+#endif // _MONOPOLY_SERVICE_H_

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include "server.h"
 
 using std::cout;
@@ -6,7 +7,7 @@ using std::endl;
 
 Server::Server()
 {
-    m_work.reset(new asio::io_service::work(m_ios));
+    m_work = std::make_unique<asio::io_service::work>(m_ios);
 }
 
 Server::~Server()
@@ -22,7 +23,7 @@ void Server::Start(uint port_num, uint thread_pool_size)
         throw std::runtime_error("No thread pool available for server");
 
     // create and start acceptor
-    m_acceptor.reset(new Acceptor(m_ios, port_num));
+    m_acceptor = std::make_unique<Acceptor>(m_ios, port_num);
     m_acceptor->Start();
 
     cout << "[Server] starting server with " << thread_pool_size << " threads." << endl;
