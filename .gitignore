@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+# Paths
+vs/
+cmake-build-debug-visual-studio
+out
