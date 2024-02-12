@@ -32,6 +32,7 @@
 *.app
 
 # Paths
-vs/
+.vs/
+.idea/
 cmake-build-debug-visual-studio
 out
