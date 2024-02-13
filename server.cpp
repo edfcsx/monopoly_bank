@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include "server.h"
+#include "json.hpp"
 
 using std::cout;
 using std::endl;
@@ -129,5 +130,44 @@ void Server::RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, REJEC
 
         sock->close();
         delete response;
+    });
+}
+
+void Server::RequestAuthorization(std::shared_ptr<asio::ip::tcp::socket> sock)
+{
+    auto * request = new asio::streambuf{};
+
+    asio::async_read_until(*sock, (*request), '\n',
+       [request, sock](const system::error_code & ec, std::size_t bytes_transferred) {
+        if (ec.value() != 0) {
+            cout << "[Server] failed to read authorization request: " << ec.message() << endl;
+            sock->close();
+            return;
+        }
+
+        std::string request_data;
+        std::istream is(&(*request));
+        std::getline(is, request_data);
+        is.get(); // consume '\n'
+
+        nlohmann::json j = nlohmann::json::parse(request_data);
+
+        if (j["header"] == message_headers["AUTHENTICATE"]) {
+            std::string username = j["username"];
+            std::string password = j["password"];
+        } else {
+            auto * response = new std::string{R"({ "header" : "REJECT_CONNECTION_UNKNOWN" })"};
+
+            asio::async_write(*sock, asio::buffer(*response), [response, request, sock](const system::error_code & ec, std::size_t bytes_transferred) {
+                if (ec.value() != 0)
+                    cout << "[Server] failed to send reject response: " << ec.message() << endl;
+
+                sock->close();
+
+                delete request;
+                delete response;
+            });
+        }
+
     });
 }

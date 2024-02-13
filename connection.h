@@ -1,7 +1,7 @@
 #ifndef CONNECTION_H_
 #define CONNECTION_H_
 
-#include "asio_common.h"
+#include "networking.h"
 
 class Connection
 {

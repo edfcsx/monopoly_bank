@@ -36,13 +36,14 @@ endif()
 
 # Adicione a origem ao executável deste projeto.
 add_executable (${PROJECT_NAME}
-        asio_common.h
+        networking.h
         server.cpp
         server.h
         types.h
         main.cpp
         connection.cpp
         connection.h
+        json.hpp
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)

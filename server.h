@@ -7,14 +7,8 @@
 #include <list>
 
 #include "types.h"
-#include "asio_common.h"
+#include "networking.h"
 #include "connection.h"
-
-enum REJECT_REASON
-{
-    REJECT_REASON_UNKNOWN = 0,
-    REJECT_REASON_LIMIT_REACHED
-};
 
 class Server
 {
@@ -39,6 +33,7 @@ private:
 private:
     void InitAcceptConnections();
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, REJECT_REASON reason);
+    void RequestAuthorization(std::shared_ptr<asio::ip::tcp::socket> sock);
 };
 
 #endif // SERVER_H_
