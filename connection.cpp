@@ -4,12 +4,15 @@
 using std::cout;
 using std::endl;
 
-Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
+Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock, Player * player) :
     m_sock(sock),
     m_isOpen(true)
 {
+    m_player = player;
     IOListener();
-    cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
+
+    cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() <<
+        " username: " << m_player->m_username << endl;
 }
 
 Connection::~Connection()

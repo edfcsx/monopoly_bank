@@ -2,11 +2,12 @@
 #define CONNECTION_H_
 
 #include "networking.h"
+#include "player.h"
 
 class Connection
 {
 public:
-    Connection(std::shared_ptr<asio::ip::tcp::socket> sock);
+    Connection(std::shared_ptr<asio::ip::tcp::socket> sock, Player * player);
     ~Connection();
 
     void Close();
@@ -18,6 +19,7 @@ private:
     std::string m_response;
 
     bool m_isOpen;
+    Player * m_player;
 
     void IOListener();
 };

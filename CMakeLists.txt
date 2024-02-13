@@ -44,6 +44,8 @@ add_executable (${PROJECT_NAME}
         connection.cpp
         connection.h
         json.hpp
+        player.cpp
+        player.h
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)

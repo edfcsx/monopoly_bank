@@ -5,10 +5,12 @@
 #include <vector>
 #include <thread>
 #include <list>
+#include <unordered_map>
 
 #include "types.h"
 #include "networking.h"
 #include "connection.h"
+#include "player.h"
 
 class Server
 {
@@ -30,9 +32,10 @@ private:
 
     uint m_connections_limit;
     std::list<Connection *> m_connections;
+    std::unordered_map<std::string, Player *> m_players;
 private:
     void InitAcceptConnections();
-    static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, REJECT_REASON reason);
+    static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
     void RequestAuthorization(std::shared_ptr<asio::ip::tcp::socket> sock);
 };
 

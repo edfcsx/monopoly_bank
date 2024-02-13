@@ -1,5 +1,5 @@
-#ifndef _ASIO_COMMON_H_
-#define _ASIO_COMMON_H_
+#ifndef NETWORKING_H_
+#define NETWORKING_H_
 
 #include <boost/predef.h>
 
@@ -19,16 +19,13 @@ using namespace boost;
 
 #include <map>
 
-enum REJECT_REASON: unsigned int
+enum SERVER_CODES: unsigned int
 {
-    REJECT_REASON_UNKNOWN = 0,
-    REJECT_REASON_LIMIT_REACHED
-};
-
-std::map<std::string, std::string> message_headers = {
-    { "REJECT_CONNECTION_LIMIT_REACHED", "REJECT_CONNECTION_LIMIT_REACHED" },
-    { "REJECT_CONNECTION_UNKNOWN", "REJECT_CONNECTION_UNKNOWN" },
-    { "AUTHENTICATE", "AUTHENTICATE" }
+    UNKNOWN = 0,
+    LIMIT_REACHED,
+    NEED_AUTHENTICATE,
+    AUTHENTICATE_FAILED,
+    AUTHENTICATE
 };
 
 struct AuthorizationRequest
@@ -38,4 +35,4 @@ struct AuthorizationRequest
     std::string password;
 };
 
-#endif // !_ASIO_COMMON_H_
+#endif // NETWORKING_H_
