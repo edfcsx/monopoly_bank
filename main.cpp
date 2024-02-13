@@ -26,7 +26,7 @@ int main()
         server.Start(3333, thread_pool_size);
 
         while (true) {
-            std::this_thread::sleep_for(std::chrono::seconds(15));
+            std::this_thread::sleep_for(std::chrono::seconds(60));
             server.DumpClosedConnections();
         }
     }
