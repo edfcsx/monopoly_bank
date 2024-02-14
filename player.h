@@ -4,6 +4,7 @@
 #include <string>
 #include "connection.h"
 #include "networking.h"
+#include "types.h"
 
 using std::string;
 
@@ -12,16 +13,28 @@ class Connection;
 class Player
 {
 public:
-    Player(string username, string password, std::shared_ptr<asio::ip::tcp::socket> sock);
+    Player(
+            string username,
+            string password,
+            std::shared_ptr<asio::ip::tcp::socket> sock,
+            std::shared_ptr<std::unordered_map<string, Player *>> players
+          );
+
     ~Player();
-
-    string m_username;
-    string m_password;
-
-    void AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock);
 
 private:
     std::unique_ptr<Connection> m_connection;
+
+    string m_username;
+    string m_password;
+    uint   m_money;
+
+public:
+    void AttachConnection(
+            std::shared_ptr<asio::ip::tcp::socket> sock,
+            std::shared_ptr<std::unordered_map<string, Player *>> players);
+
+    string GetPassword() const;
 };
 
 #endif // PLAYER_H_

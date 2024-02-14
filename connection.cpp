@@ -4,7 +4,7 @@
 using std::cout;
 using std::endl;
 
-Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
+Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock, std::shared_ptr<std::unordered_map<string, Player *>> players) :
     m_sock(sock),
     m_isOpen(true)
 {

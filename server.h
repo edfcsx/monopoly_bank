@@ -18,11 +18,6 @@ class Server
 public:
     Server();
     ~Server();
-
-    void Start(uint port_num, uint thread_pool_size);
-    void Stop();
-
-    void SetConnectionsLimit(uint limit);
 private:
     asio::io_service m_ios;
     std::unique_ptr<asio::io_service::work> m_work;
@@ -31,7 +26,11 @@ private:
     std::atomic<bool> m_isStopped;
 
     uint m_connections_limit;
-    std::unordered_map<std::string, Player *> m_players;
+    std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
+public:
+    void Start(uint port_num, uint thread_pool_size);
+    void Stop();
+    void SetConnectionsLimit(uint limit);
 private:
     void InitAcceptConnections();
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);

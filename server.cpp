@@ -73,7 +73,7 @@ void Server::InitAcceptConnections()
 
     m_acceptor.async_accept(*sock, [this, sock](const system::error_code & ec) {
         if (!ec) {
-            if (m_players.size() >= m_connections_limit)
+            if (m_players->size() >= m_connections_limit)
                 Server::RejectConnection(sock, SERVER_CODES::LIMIT_REACHED);
             else
                 AuthenticatePlayer(sock);
@@ -142,14 +142,14 @@ void Server::AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> so
         std::string username = player_data["username"];
         std::string password = player_data["password"];
 
-        if (m_players.find(username) != m_players.end()) {
-            if (m_players[username]->m_password == password)
-                m_players[username]->AttachConnection(sock);
+        if (m_players->find(username) != m_players->end()) {
+            if ((*m_players)[username]->GetPassword() == password)
+                (*m_players)[username]->AttachConnection(sock, m_players);
             else
                 Server::RejectConnection(sock, SERVER_CODES::AUTHENTICATE_FAILED);
         } else {
-            auto * p = new Player(username, password, sock);
-            m_players.insert({ username, p });
+            auto * p = new Player(username, password, sock, m_players);
+            m_players->insert({ username, p });
         }
     } else {
         Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
