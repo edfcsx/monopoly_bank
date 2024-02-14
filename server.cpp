@@ -76,10 +76,11 @@ void Server::InitAcceptConnections()
             if (m_players.size() >= m_connections_limit)
                 Server::RejectConnection(sock, SERVER_CODES::LIMIT_REACHED);
             else
-                RequestAuthorization(sock);
+                AuthenticatePlayer(sock);
         }
-        else
+        else {
             cout << "[Server] failed to accept connection: " << ec.message() << endl;
+        }
 
         // Init next async accept operation if acceptor has not been stopped yet
         if (!m_isStopped.load())
@@ -108,7 +109,7 @@ void Server::RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVE
     });
 }
 
-void Server::RequestAuthorization(std::shared_ptr<asio::ip::tcp::socket> sock)
+void Server::AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock)
 {
     auto * request = new asio::streambuf{};
 
@@ -126,23 +127,7 @@ void Server::RequestAuthorization(std::shared_ptr<asio::ip::tcp::socket> sock)
 
         try {
             nlohmann::json j = nlohmann::json::parse(request_data);
-
-            if (j["code"] == SERVER_CODES::AUTHENTICATE) {
-                std::string username = j["username"];
-                std::string password = j["password"];
-
-                if (m_players.find(username) != m_players.end()) {
-                    if (m_players[username]->m_password == password)
-                        m_players[username]->AttachConnection(sock);
-                    else
-                        Server::RejectConnection(sock, SERVER_CODES::AUTHENTICATE_FAILED);
-                } else {
-                    auto * p = new Player(username, password, sock);
-                    m_players.insert({ username, p });
-                }
-            } else {
-                Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
-            }
+            AuthenticatePlayerHandler(sock, j);
         }
         catch (const nlohmann::json::parse_error&) {
             Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
@@ -150,4 +135,23 @@ void Server::RequestAuthorization(std::shared_ptr<asio::ip::tcp::socket> sock)
 
         delete request;
     });
+}
+
+void Server::AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data) {
+    if (player_data["code"] == SERVER_CODES::AUTHENTICATE) {
+        std::string username = player_data["username"];
+        std::string password = player_data["password"];
+
+        if (m_players.find(username) != m_players.end()) {
+            if (m_players[username]->m_password == password)
+                m_players[username]->AttachConnection(sock);
+            else
+                Server::RejectConnection(sock, SERVER_CODES::AUTHENTICATE_FAILED);
+        } else {
+            auto * p = new Player(username, password, sock);
+            m_players.insert({ username, p });
+        }
+    } else {
+        Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
+    }
 }

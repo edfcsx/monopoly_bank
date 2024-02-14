@@ -11,6 +11,7 @@
 #include "networking.h"
 #include "connection.h"
 #include "player.h"
+#include "json.hpp"
 
 class Server
 {
@@ -34,7 +35,8 @@ private:
 private:
     void InitAcceptConnections();
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
-    void RequestAuthorization(std::shared_ptr<asio::ip::tcp::socket> sock);
+    void AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock);
+    void AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data);
 };
 
 #endif // SERVER_H_

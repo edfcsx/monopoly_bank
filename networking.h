@@ -28,11 +28,4 @@ enum SERVER_CODES: unsigned int
     AUTHENTICATE
 };
 
-struct AuthorizationRequest
-{
-    std::string header;
-    std::string username;
-    std::string password;
-};
-
 #endif // NETWORKING_H_
