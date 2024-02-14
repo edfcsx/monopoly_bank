@@ -48,12 +48,6 @@ void Server::Stop()
     m_isStopped.store(true);
     m_acceptor.close();
 
-    // close connections
-    for (auto& conn : m_connections)
-        conn->Close();
-
-    m_connections.clear();
-
     // stop io_service
     m_ios.stop();
 
@@ -79,7 +73,7 @@ void Server::InitAcceptConnections()
 
     m_acceptor.async_accept(*sock, [this, sock](const system::error_code & ec) {
         if (!ec) {
-            if (m_connections.size() >= m_connections_limit)
+            if (m_players.size() >= m_connections_limit)
                 Server::RejectConnection(sock, SERVER_CODES::LIMIT_REACHED);
             else
                 RequestAuthorization(sock);
@@ -92,18 +86,6 @@ void Server::InitAcceptConnections()
             InitAcceptConnections();
         else
             Stop();
-    });
-}
-
-void Server::DumpClosedConnections()
-{
-    m_connections.remove_if([](Connection * conn) {
-        if (!conn->IsOpen())
-        {
-            delete conn;
-            return true;
-        }
-        return false;
     });
 }
 
@@ -150,23 +132,22 @@ void Server::RequestAuthorization(std::shared_ptr<asio::ip::tcp::socket> sock)
                 std::string password = j["password"];
 
                 if (m_players.find(username) != m_players.end()) {
-                    Player * player = m_players[username];
-
-                    if (player->m_password == password)
-                        m_connections.emplace_back(new Connection(sock, player));
+                    if (m_players[username]->m_password == password)
+                        m_players[username]->AttachConnection(sock);
                     else
                         Server::RejectConnection(sock, SERVER_CODES::AUTHENTICATE_FAILED);
                 } else {
-                    auto * p = new Player(username, password);
+                    auto * p = new Player(username, password, sock);
                     m_players.insert({ username, p });
-                    m_connections.emplace_back(new Connection(sock, p));
                 }
             } else {
                 Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
             }
         }
-        catch (const nlohmann::json::parse_error & e) {
+        catch (const nlohmann::json::parse_error&) {
             Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
         }
+
+        delete request;
     });
 }

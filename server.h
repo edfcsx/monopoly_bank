@@ -22,7 +22,6 @@ public:
     void Stop();
 
     void SetConnectionsLimit(uint limit);
-    void DumpClosedConnections();
 private:
     asio::io_service m_ios;
     std::unique_ptr<asio::io_service::work> m_work;
@@ -31,7 +30,6 @@ private:
     std::atomic<bool> m_isStopped;
 
     uint m_connections_limit;
-    std::list<Connection *> m_connections;
     std::unordered_map<std::string, Player *> m_players;
 private:
     void InitAcceptConnections();

@@ -25,10 +25,8 @@ int main()
         server.SetConnectionsLimit(5);
         server.Start(3333, thread_pool_size);
 
-        while (true) {
+        while (true)
             std::this_thread::sleep_for(std::chrono::seconds(60));
-            server.DumpClosedConnections();
-        }
     }
     catch (const std::system_error & e)
     {

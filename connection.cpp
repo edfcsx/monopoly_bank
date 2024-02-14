@@ -4,23 +4,23 @@
 using std::cout;
 using std::endl;
 
-Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock, Player * player) :
+Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
     m_sock(sock),
     m_isOpen(true)
 {
-    m_player = player;
     IOListener();
 
-    cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() <<
-        " username: " << m_player->m_username << endl;
+    cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
 }
 
 Connection::~Connection()
-{}
+{
+    Close();
+}
 
 void Connection::Close()
 {
-    cout << "[Server] closed connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
+//    cout << "[Server] closed connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
     m_isOpen = false;
 
     if (m_sock->is_open())
@@ -56,5 +56,5 @@ void Connection::IOListener()
 }
 
 bool Connection::IsOpen() const {
-    return m_isOpen;
+    return m_sock && m_isOpen;
 }
