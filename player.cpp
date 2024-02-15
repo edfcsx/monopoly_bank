@@ -1,3 +1,4 @@
+#include <iostream>
 #include "player.h"
 
 Player::Player(
@@ -29,4 +30,9 @@ void Player::AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock, std::
 
 string Player::GetPassword() const {
     return m_password;
+}
+
+void Player::DispatchMessages() {
+    if (m_connection && m_connection->IsOpen())
+        m_connection->DispatchMessages();
 }

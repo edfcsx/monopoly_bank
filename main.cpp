@@ -25,8 +25,15 @@ int main()
         server.SetConnectionsLimit(5);
         server.Start(3333, thread_pool_size);
 
-        while (true)
-            std::this_thread::sleep_for(std::chrono::seconds(60));
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            for (auto& [_, player] : *server.GetPlayers()) {
+                player->DispatchMessages();
+            }
+
+            cout << "Dispatching messages" << endl;
+        }
     }
     catch (const std::system_error & e)
     {

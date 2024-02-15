@@ -10,7 +10,8 @@ Server::Server() :
     m_ios(asio::io_service {}),
     m_isStopped(false),
     m_acceptor(m_ios, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 3333)),
-    m_connections_limit(0)
+    m_connections_limit(0),
+    m_players(std::make_shared<std::unordered_map<std::string, Player *>>())
 {
     m_work = std::make_unique<asio::io_service::work>(m_ios);
 }
@@ -154,4 +155,8 @@ void Server::AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> so
     } else {
         Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
     }
+}
+
+std::shared_ptr<std::unordered_map<std::string, Player *>> Server::GetPlayers() {
+    return m_players;
 }

@@ -34,7 +34,9 @@ public:
             std::shared_ptr<asio::ip::tcp::socket> sock,
             std::shared_ptr<std::unordered_map<string, Player *>> players);
 
-    string GetPassword() const;
+    [[nodiscard]] string GetPassword() const;
+
+    void DispatchMessages();
 };
 
 #endif // PLAYER_H_

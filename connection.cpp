@@ -8,9 +8,10 @@ Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock, std::shared_
     m_sock(sock),
     m_isOpen(true)
 {
-    IOListener();
+    ListenIncomingMessages();
 
     cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
+    m_messagesOut.push_back(nlohmann::json{{"code", SERVER_CODES::AUTHENTICATE_SUCCESS }});
 }
 
 Connection::~Connection()
@@ -31,30 +32,69 @@ void Connection::Close()
     }
 }
 
-void Connection::IOListener()
+void Connection::ListenIncomingMessages()
 {
     asio::async_read_until(*m_sock, m_request, '\n',
     [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to read request: " << ec.message() << endl;
-            Close();
             return;
         }
 
-        m_response = std::string{"responding request....\n"};
-        m_request.consume(bytes_transferred);
+        std::string message;
+        std::istream is(&m_request);
+        std::getline(is, message);
 
-        // initiate asynchronous write operation and call OnResponseSent upon completion
-        asio::async_write(*m_sock, asio::buffer(m_response),
-    [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
-            if (ec.value() != 0)
-                cout << "[Server] failed to write response: " << ec.message() << endl;
+        try {
+            nlohmann::json j = nlohmann::json::parse(message);
+            m_messagesIn.push_back(j);
+        }
+        catch (nlohmann::json::parse_error & e) {
+            cout << "[Server] failed to parse message: " << e.what() << endl;
+        }
 
-            IOListener();
-        });
+        m_request.consume(m_request.size());
+        ListenIncomingMessages();
     });
 }
 
 bool Connection::IsOpen() const {
     return m_sock && m_isOpen;
+}
+
+void Connection::DispatchMessages() {
+    // first process outgoing messages
+    if (!m_messagesOut.empty()) {
+        for (auto & message : m_messagesOut) {
+            auto * msg = new string(message.dump() + "\n");
+
+            asio::async_write(*m_sock, asio::buffer(*msg),
+              [msg](const boost::system::error_code & ec, std::size_t bytes_transferred) {
+                  if (ec.value() != 0) {
+                      cout << "[Server] failed to write message: " << ec.message() << endl;
+                  }
+
+                  delete msg;
+              });
+        }
+
+        m_messagesOut.clear();
+    }
+
+    // then process incoming messages
+    if (!m_messagesIn.empty()) {
+        for (auto & message : m_messagesIn) {
+            uint code = message["code"];
+
+            switch (code) {
+                case SERVER_CODES::PING:
+                    m_messagesOut.push_back(nlohmann::json{{"code", SERVER_CODES::PING_RESPONSE, "message", "pong" }});
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        m_messagesIn.clear();
+    }
 }

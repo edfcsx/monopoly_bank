@@ -19,7 +19,6 @@ public:
 
     void Close();
     [[nodiscard]] bool IsOpen() const;
-
 private:
     bool m_isOpen;
     std::shared_ptr<asio::ip::tcp::socket> m_sock;
@@ -29,8 +28,10 @@ private:
 
     vector<nlohmann::json> m_messagesIn;
     vector<nlohmann::json> m_messagesOut;
-
-    void IOListener();
+public:
+    void DispatchMessages();
+private:
+    void ListenIncomingMessages();
 };
 
 #endif // CONNECTION_H_

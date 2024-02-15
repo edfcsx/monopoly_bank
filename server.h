@@ -31,6 +31,7 @@ public:
     void Start(uint port_num, uint thread_pool_size);
     void Stop();
     void SetConnectionsLimit(uint limit);
+    std::shared_ptr<std::unordered_map<std::string, Player *>> GetPlayers();
 private:
     void InitAcceptConnections();
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
