@@ -14,7 +14,8 @@ class Player;
 class Connection
 {
 public:
-    Connection(std::shared_ptr<asio::ip::tcp::socket> sock, std::shared_ptr<std::unordered_map<std::string, Player *>> players);
+    Connection(
+            std::shared_ptr<asio::ip::tcp::socket> sock);
     ~Connection();
 
     void Close();
@@ -22,7 +23,6 @@ public:
 private:
     bool m_isOpen;
     std::shared_ptr<asio::ip::tcp::socket> m_sock;
-    std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
     asio::streambuf m_request;
     std::string m_response;
 
@@ -30,6 +30,7 @@ private:
     vector<nlohmann::json> m_messagesOut;
 public:
     void DispatchMessages();
+    void Send(nlohmann::json message);
 private:
     void ListenIncomingMessages();
 };

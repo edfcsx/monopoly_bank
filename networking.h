@@ -18,6 +18,7 @@
 using namespace boost;
 
 #include <map>
+#include "json.hpp"
 
 enum SERVER_CODES: unsigned int
 {
@@ -28,7 +29,13 @@ enum SERVER_CODES: unsigned int
     AUTHENTICATE,
     AUTHENTICATE_SUCCESS,
     PING,
-    PING_RESPONSE
+    PING_RESPONSE,
+    SEND_PROFILE
+};
+
+struct NetworkingMessage {
+    SERVER_CODES code;
+    nlohmann::json data;
 };
 
 #endif // NETWORKING_H_

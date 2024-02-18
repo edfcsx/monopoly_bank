@@ -27,11 +27,15 @@ private:
 
     uint m_connections_limit;
     std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
+
+    std::mutex m_messageInMutex;
+    std::list<NetworkingMessage> m_messagesIn;
 public:
     void Start(uint port_num, uint thread_pool_size);
     void Stop();
     void SetConnectionsLimit(uint limit);
     std::shared_ptr<std::unordered_map<std::string, Player *>> GetPlayers();
+    void PushMessage(NetworkingMessage message);
 private:
     void InitAcceptConnections();
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);

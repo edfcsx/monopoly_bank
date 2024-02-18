@@ -4,7 +4,7 @@
 using std::cout;
 using std::endl;
 
-Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock, std::shared_ptr<std::unordered_map<string, Player *>> players) :
+Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
     m_sock(sock),
     m_isOpen(true)
 {
@@ -96,5 +96,11 @@ void Connection::DispatchMessages() {
         }
 
         m_messagesIn.clear();
+    }
+}
+
+void Connection::Send(nlohmann::json message) {
+    if (m_isOpen) {
+        m_messagesOut.push_back(message);
     }
 }

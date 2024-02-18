@@ -4,18 +4,20 @@
 Player::Player(
         string username,
         string password,
-        std::shared_ptr<asio::ip::tcp::socket> sock,
-        std::shared_ptr<std::unordered_map<string, Player *>> players
+        std::shared_ptr<asio::ip::tcp::socket> sock
 ) :
     m_username(std::move(username)),
     m_password(std::move(password)),
-    m_connection(new Connection(sock, players)),
+    m_connection(std::make_unique<Connection>(sock)),
     m_money(2'558'000)
-{}
+{
+    // send the profile to the client
+    SendProfile();
+}
 
 Player::~Player() {}
 
-void Player::AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock, std::shared_ptr<std::unordered_map<string, Player *>> players) {
+void Player::AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock) {
     if (m_connection && m_connection->IsOpen()) {
         m_connection->Close();
 
@@ -25,7 +27,7 @@ void Player::AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock, std::
         }
     }
 
-    m_connection = std::make_unique<Connection>(sock, players);
+    m_connection = std::make_unique<Connection>(sock);
 }
 
 string Player::GetPassword() const {
@@ -35,4 +37,17 @@ string Player::GetPassword() const {
 void Player::DispatchMessages() {
     if (m_connection && m_connection->IsOpen())
         m_connection->DispatchMessages();
+}
+
+void Player::SendProfile() {
+    if (m_connection && m_connection->IsOpen()) {
+
+        nlohmann::json j = {
+            {"code", SERVER_CODES::SEND_PROFILE},
+            {"username", m_username},
+            {"money", m_money}
+        };
+
+        m_connection->Send(j);
+    }
 }

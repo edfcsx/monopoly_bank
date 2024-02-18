@@ -31,8 +31,6 @@ int main()
             for (auto& [_, player] : *server.GetPlayers()) {
                 player->DispatchMessages();
             }
-
-            cout << "Dispatching messages" << endl;
         }
     }
     catch (const std::system_error & e)

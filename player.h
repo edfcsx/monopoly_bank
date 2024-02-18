@@ -13,30 +13,20 @@ class Connection;
 class Player
 {
 public:
-    Player(
-            string username,
-            string password,
-            std::shared_ptr<asio::ip::tcp::socket> sock,
-            std::shared_ptr<std::unordered_map<string, Player *>> players
-          );
-
+    Player(string username, string password, std::shared_ptr<asio::ip::tcp::socket> sock);
     ~Player();
 
-private:
     std::unique_ptr<Connection> m_connection;
-
+private:
     string m_username;
     string m_password;
     uint   m_money;
-
 public:
-    void AttachConnection(
-            std::shared_ptr<asio::ip::tcp::socket> sock,
-            std::shared_ptr<std::unordered_map<string, Player *>> players);
-
+    void AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock);
     [[nodiscard]] string GetPassword() const;
 
     void DispatchMessages();
+    void SendProfile();
 };
 
 #endif // PLAYER_H_

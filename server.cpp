@@ -145,11 +145,11 @@ void Server::AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> so
 
         if (m_players->find(username) != m_players->end()) {
             if ((*m_players)[username]->GetPassword() == password)
-                (*m_players)[username]->AttachConnection(sock, m_players);
+                (*m_players)[username]->AttachConnection(sock);
             else
                 Server::RejectConnection(sock, SERVER_CODES::AUTHENTICATE_FAILED);
         } else {
-            auto * p = new Player(username, password, sock, m_players);
+            auto * p = new Player(username, password, sock);
             m_players->insert({ username, p });
         }
     } else {
@@ -159,4 +159,9 @@ void Server::AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> so
 
 std::shared_ptr<std::unordered_map<std::string, Player *>> Server::GetPlayers() {
     return m_players;
+}
+
+void Server::PushMessage(NetworkingMessage message) {
+    std::lock_guard<std::mutex> lock(m_messageInMutex);
+    m_messagesIn.push_back(message);
 }
