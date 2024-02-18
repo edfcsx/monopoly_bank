@@ -6,7 +6,8 @@ using std::endl;
 
 Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
     m_sock(sock),
-    m_isOpen(true)
+    m_isOpen(true),
+    m_server(nullptr)
 {
     ListenIncomingMessages();
 
@@ -47,7 +48,13 @@ void Connection::ListenIncomingMessages()
 
         try {
             nlohmann::json j = nlohmann::json::parse(message);
-            m_messagesIn.push_back(j);
+
+            if (j.contains("code")) {
+                NetworkingMessage msg;
+                msg.code = static_cast<SERVER_CODES>(static_cast<uint>(j["code"]));
+                msg.data = j;
+                m_server->PushMessage(msg);
+            }
         }
         catch (nlohmann::json::parse_error & e) {
             cout << "[Server] failed to parse message: " << e.what() << endl;
@@ -63,7 +70,6 @@ bool Connection::IsOpen() const {
 }
 
 void Connection::DispatchMessages() {
-    // first process outgoing messages
     if (!m_messagesOut.empty()) {
         for (auto & message : m_messagesOut) {
             auto * msg = new string(message.dump() + "\n");
@@ -80,27 +86,12 @@ void Connection::DispatchMessages() {
 
         m_messagesOut.clear();
     }
-
-    // then process incoming messages
-    if (!m_messagesIn.empty()) {
-        for (auto & message : m_messagesIn) {
-            uint code = message["code"];
-
-            switch (code) {
-                case SERVER_CODES::PING:
-                    m_messagesOut.push_back(nlohmann::json{{"code", SERVER_CODES::PING_RESPONSE, "message", "pong" }});
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        m_messagesIn.clear();
-    }
 }
 
 void Connection::Send(nlohmann::json message) {
-    if (m_isOpen) {
-        m_messagesOut.push_back(message);
-    }
+    m_messagesOut.push_back(message);
+}
+
+void Connection::BindServer(Server * server) {
+    m_server = server;
 }

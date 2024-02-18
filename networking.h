@@ -22,7 +22,7 @@ using namespace boost;
 
 enum SERVER_CODES: unsigned int
 {
-    UNKNOWN = 0,
+    UNKNOWN = 1,
     LIMIT_REACHED,
     NEED_AUTHENTICATE,
     AUTHENTICATE_FAILED,

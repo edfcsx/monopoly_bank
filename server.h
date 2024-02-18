@@ -13,6 +13,8 @@
 #include "player.h"
 #include "json.hpp"
 
+class Player;
+
 class Server
 {
 public:

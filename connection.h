@@ -7,15 +7,16 @@
 #include "json.hpp"
 #include "networking.h"
 #include "player.h"
+#include "server.h"
 
 using std::vector;
-class Player;
+
+class Server;
 
 class Connection
 {
 public:
-    Connection(
-            std::shared_ptr<asio::ip::tcp::socket> sock);
+    Connection(std::shared_ptr<asio::ip::tcp::socket> sock);
     ~Connection();
 
     void Close();
@@ -26,11 +27,12 @@ private:
     asio::streambuf m_request;
     std::string m_response;
 
-    vector<nlohmann::json> m_messagesIn;
     vector<nlohmann::json> m_messagesOut;
+    Server * m_server;
 public:
     void DispatchMessages();
     void Send(nlohmann::json message);
+    void BindServer(Server * server);
 private:
     void ListenIncomingMessages();
 };
