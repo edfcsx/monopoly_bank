@@ -43,9 +43,11 @@ add_executable (${PROJECT_NAME}
         main.cpp
         connection.cpp
         connection.h
-        json.hpp
         player.cpp
         player.h
+        json.hpp
+        icommand.h
+        ping_command.h
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)

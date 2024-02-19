@@ -1,8 +1,7 @@
 #include <thread>
 #include <iostream>
 #include "server.h"
-
-using namespace std;
+#include "player.h"
 
 const uint DEFAULT_THREAD_POOL_SIZE{ 2 };
 
@@ -10,7 +9,7 @@ int main()
 {
     try
     {
-        cout << "[GAME] Starting Monopoly Bank\n"
+        std::cout << "[GAME] Starting Monopoly Bank\n"
                 "Version : 0.0.0\n"
                 "Author  : Eduardo Cipriano - edfcsx@gmail.com\n"
                 "Press Ctrl+C to stop the server\n\n";
@@ -30,12 +29,13 @@ int main()
 
             for (auto& [_, player] : *server.GetPlayers()) {
                 player->DispatchMessages();
+                server.ProcessMessages();
             }
         }
     }
     catch (const std::system_error & e)
     {
-        cout << "Server start failed: " << e.what() << endl;
+        std::cout << "Server start failed: " << e.what() << "\n";
     }
 
     return 0;

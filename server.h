@@ -9,11 +9,11 @@
 
 #include "types.h"
 #include "networking.h"
-#include "connection.h"
 #include "player.h"
 #include "json.hpp"
 
-class Player;
+#include "icommand.h"
+#include "ping_command.h"
 
 class Server
 {
@@ -28,16 +28,20 @@ private:
     std::atomic<bool> m_isStopped;
 
     uint m_connections_limit;
+    std::mutex m_playersMutex;
     std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
 
     std::mutex m_messageInMutex;
     std::list<NetworkingMessage> m_messagesIn;
+
+    std::unordered_map<SERVER_CODES, std::unique_ptr<Icommand>> m_commandsMap;
 public:
     void Start(uint port_num, uint thread_pool_size);
     void Stop();
     void SetConnectionsLimit(uint limit);
     std::shared_ptr<std::unordered_map<std::string, Player *>> GetPlayers();
     void PushMessage(NetworkingMessage message);
+    void ProcessMessages();
 private:
     void InitAcceptConnections();
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);

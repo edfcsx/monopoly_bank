@@ -11,9 +11,11 @@ Server::Server() :
     m_isStopped(false),
     m_acceptor(m_ios, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 3333)),
     m_connections_limit(0),
-    m_players(std::make_shared<std::unordered_map<std::string, Player *>>())
+    m_players(std::make_shared<std::unordered_map<std::string, Player *>>()),
+    m_commandsMap(std::unordered_map<SERVER_CODES, std::unique_ptr<Icommand>>())
 {
     m_work = std::make_unique<asio::io_service::work>(m_ios);
+    m_commandsMap[SERVER_CODES::PING] = std::make_unique<PingCommand>();
 }
 
 Server::~Server()
@@ -29,8 +31,8 @@ void Server::Start(uint port_num, uint thread_pool_size)
     m_acceptor.listen();
     InitAcceptConnections();
 
-    cout << "[Server] starting server with " << thread_pool_size << " threads." << endl;
-    cout << "[Server] server is already to accept connections" << endl;
+    std::cout << "[Server] starting server with " << thread_pool_size << " threads.\n";
+    std::cout << "[Server] server is already to accept connections\n";
 
     // create and start specified number of threads
     for (uint i = 0; i < thread_pool_size; ++i)
@@ -173,3 +175,17 @@ void Server::PushMessage(NetworkingMessage message) {
     }
 }
 
+void Server::ProcessMessages() {
+    std::lock_guard<std::mutex> lock(m_messageInMutex);
+    std::lock_guard<std::mutex> players_lock(m_playersMutex);
+
+    for (auto & msg : m_messagesIn) {
+        if (m_commandsMap.find(msg.code) != m_commandsMap.end()) {
+            m_commandsMap[msg.code]->execute(m_players, msg.data);
+        } else {
+            cout << "[Server] unknown message code: " << static_cast<int>(msg.code) << endl;
+        }
+    }
+
+    m_messagesIn.clear();
+}

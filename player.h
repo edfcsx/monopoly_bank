@@ -2,13 +2,11 @@
 #define PLAYER_H_
 
 #include <string>
-#include "connection.h"
 #include "networking.h"
 #include "types.h"
+#include "connection.h"
 
 using std::string;
-
-class Connection;
 
 class Player
 {

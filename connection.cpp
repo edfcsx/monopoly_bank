@@ -1,8 +1,11 @@
 #include <iostream>
+#include <string>
 #include "connection.h"
+#include "server.h"
 
 using std::cout;
 using std::endl;
+using std::string;
 
 Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
     m_sock(sock),
@@ -22,7 +25,6 @@ Connection::~Connection()
 
 void Connection::Close()
 {
-//    cout << "[Server] closed connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
     m_isOpen = false;
 
     if (m_sock->is_open())

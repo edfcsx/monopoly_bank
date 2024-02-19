@@ -6,11 +6,8 @@
 #include <unordered_map>
 #include "json.hpp"
 #include "networking.h"
-#include "player.h"
-#include "server.h"
 
 using std::vector;
-
 class Server;
 
 class Connection
