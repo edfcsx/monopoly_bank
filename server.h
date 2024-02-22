@@ -13,7 +13,6 @@
 #include "json.hpp"
 
 #include "icommand.h"
-#include "ping_command.h"
 
 class Server
 {

@@ -2,6 +2,8 @@
 #include <memory>
 #include "server.h"
 #include "json.hpp"
+#include "ping_command.h"
+#include "transfer_command.h"
 
 using std::cout;
 using std::endl;
@@ -16,6 +18,7 @@ Server::Server() :
 {
     m_work = std::make_unique<asio::io_service::work>(m_ios);
     m_commandsMap[SERVER_CODES::PING] = std::make_unique<PingCommand>();
+    m_commandsMap[SERVER_CODES::TRANSFER] = std::make_unique<TransferCommand>();
 }
 
 Server::~Server()

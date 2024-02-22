@@ -25,6 +25,10 @@ public:
 
     void DispatchMessages();
     void SendProfile();
+    void SetMoney(uint money);
+    uint GetMoney();
+    bool Withdraw(uint amount);
+    void IncreaseMoney(uint amount);
 };
 
 #endif // PLAYER_H_
