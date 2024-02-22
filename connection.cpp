@@ -9,8 +9,7 @@ using std::string;
 
 Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
     m_sock(sock),
-    m_isOpen(true),
-    m_server(nullptr)
+    m_isOpen(true)
 {
     ListenIncomingMessages();
 
@@ -55,7 +54,7 @@ void Connection::ListenIncomingMessages()
                 NetworkingMessage msg;
                 msg.code = static_cast<SERVER_CODES>(static_cast<uint>(j["code"]));
                 msg.data = j;
-                m_server->PushMessage(msg);
+                Server::getInstance().PushMessage(msg);
             }
         }
         catch (nlohmann::json::parse_error & e) {
@@ -94,6 +93,3 @@ void Connection::Send(nlohmann::json message) {
     m_messagesOut.push_back(message);
 }
 
-void Connection::BindServer(Server * server) {
-    m_server = server;
-}

@@ -14,12 +14,12 @@ int main()
                 "Author  : Eduardo Cipriano - edfcsx@gmail.com\n"
                 "Press Ctrl+C to stop the server\n\n";
 
-        Server server;
-
         uint thread_pool_size = std::thread::hardware_concurrency() * 2;
 
         if (thread_pool_size == 0)
             thread_pool_size = DEFAULT_THREAD_POOL_SIZE;
+
+        Server &server = Server::getInstance();
 
         server.SetConnectionsLimit(5);
         server.Start(3333, thread_pool_size);

@@ -8,7 +8,6 @@
 #include "networking.h"
 
 using std::vector;
-class Server;
 
 class Connection
 {
@@ -25,11 +24,9 @@ private:
     std::string m_response;
 
     vector<nlohmann::json> m_messagesOut;
-    Server * m_server;
 public:
     void DispatchMessages();
     void Send(nlohmann::json message);
-    void BindServer(Server * server);
 private:
     void ListenIncomingMessages();
 };

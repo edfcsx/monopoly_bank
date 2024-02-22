@@ -17,8 +17,18 @@
 class Server
 {
 public:
+    static Server& getInstance() {
+        static Server instance;
+        return instance;
+    }
+private:
     Server();
     ~Server();
+
+    // Delete copy and move constructors and assign operators
+    // to prevent any copies of your singleton
+    Server(Server const&);
+    void operator=(Server const&);
 private:
     asio::io_service m_ios;
     std::unique_ptr<asio::io_service::work> m_work;

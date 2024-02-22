@@ -151,13 +151,11 @@ void Server::AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> so
         if (m_players->find(username) != m_players->end()) {
             if ((*m_players)[username]->GetPassword() == password){
                 (*m_players)[username]->AttachConnection(sock);
-                (*m_players)[username]->m_connection->BindServer(this);
             }
             else
                 Server::RejectConnection(sock, SERVER_CODES::AUTHENTICATE_FAILED);
         } else {
             auto * p = new Player(username, password, sock);
-            p->m_connection->BindServer(this);
             m_players->insert({ username, p });
         }
     } else {
