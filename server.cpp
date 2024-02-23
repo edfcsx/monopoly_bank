@@ -190,3 +190,19 @@ void Server::ProcessMessages() {
 
     m_messagesIn.clear();
 }
+
+bool Server::CheckPlayerExistsAndConnected(const std::string & username) {
+    if (m_players->find(username) != m_players->end()) {
+        return (*m_players)[username]->m_connection && (*m_players)[username]->m_connection->IsOpen();
+    }
+
+    return false;
+}
+
+bool Server::CheckPlayerExists(const std::string & username) {
+    return m_players->find(username) != m_players->end();
+}
+
+bool Server::CheckPlayerConnected(const std::string & username) {
+    return (*m_players)[username]->m_connection && (*m_players)[username]->m_connection->IsOpen();
+}

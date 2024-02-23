@@ -35,7 +35,7 @@ enum SERVER_CODES: unsigned int
     TRANSFER_SUCCESS,
     TRANSFER_RECEIVED,
     TRANSFER_NO_FUNDS,
-    TRANSFER_INVALID,
+    BAD_REQUEST,
 };
 
 struct NetworkingMessage {

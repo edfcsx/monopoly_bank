@@ -11,7 +11,6 @@
 #include "networking.h"
 #include "player.h"
 #include "json.hpp"
-
 #include "icommand.h"
 
 class Server
@@ -29,6 +28,9 @@ private:
     // to prevent any copies of your singleton
     Server(Server const&);
     void operator=(Server const&);
+public:
+    std::mutex m_playersMutex;
+    std::mutex m_messageInMutex;
 private:
     asio::io_service m_ios;
     std::unique_ptr<asio::io_service::work> m_work;
@@ -37,12 +39,9 @@ private:
     std::atomic<bool> m_isStopped;
 
     uint m_connections_limit;
-    std::mutex m_playersMutex;
     std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
 
-    std::mutex m_messageInMutex;
     std::list<NetworkingMessage> m_messagesIn;
-
     std::unordered_map<SERVER_CODES, std::unique_ptr<Icommand>> m_commandsMap;
 public:
     void Start(uint port_num, uint thread_pool_size);
@@ -51,6 +50,9 @@ public:
     std::shared_ptr<std::unordered_map<std::string, Player *>> GetPlayers();
     void PushMessage(NetworkingMessage message);
     void ProcessMessages();
+    bool CheckPlayerExistsAndConnected(const std::string & username);
+    bool CheckPlayerExists(const std::string & username);
+    bool CheckPlayerConnected(const std::string & username);
 private:
     void InitAcceptConnections();
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
