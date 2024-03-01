@@ -13,6 +13,11 @@
 #include "json.hpp"
 #include "icommand.h"
 
+enum ConnectionProtocol: int {
+    RAW,
+    WEBSOCKET
+};
+
 class Server
 {
 public:
@@ -35,7 +40,7 @@ private:
     asio::io_service m_ios;
     std::unique_ptr<asio::io_service::work> m_work;
     std::vector<std::unique_ptr<std::thread>> m_thread_pool;
-    asio::ip::tcp::acceptor m_acceptor;
+    std::unordered_map<ConnectionProtocol, std::unique_ptr<asio::ip::tcp::acceptor>> m_acceptors;
     std::atomic<bool> m_isStopped;
 
     uint m_connections_limit;
@@ -53,8 +58,13 @@ public:
     bool CheckPlayerExistsAndConnected(const std::string & username);
     bool CheckPlayerExists(const std::string & username);
     bool CheckPlayerConnected(const std::string & username);
+    static bool IsWebQuery(const std::string & query);
+    static nlohmann::json ParseWebQuery(const std::string & query);
 private:
-    void InitAcceptConnections();
+    void Listen(ConnectionProtocol protocol);
+    void AcceptRawConnection(std::shared_ptr<asio::ip::tcp::socket> sock);
+    void AcceptWebsocketConnection(std::shared_ptr<asio::ip::tcp::socket> sock);
+
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
     void AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock);
     void AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data);

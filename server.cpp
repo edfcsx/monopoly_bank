@@ -11,11 +11,14 @@ using std::endl;
 Server::Server() :
     m_ios(asio::io_service {}),
     m_isStopped(false),
-    m_acceptor(m_ios, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 3333)),
     m_connections_limit(0),
     m_players(std::make_shared<std::unordered_map<std::string, Player *>>()),
-    m_commandsMap(std::unordered_map<SERVER_CODES, std::unique_ptr<Icommand>>())
+    m_commandsMap(std::unordered_map<SERVER_CODES, std::unique_ptr<Icommand>>()),
+    m_acceptors(std::unordered_map<ConnectionProtocol, std::unique_ptr<asio::ip::tcp::acceptor>>())
 {
+    m_acceptors[ConnectionProtocol::RAW] = std::make_unique<asio::ip::tcp::acceptor>(m_ios, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 3333));
+    m_acceptors[ConnectionProtocol::WEBSOCKET] = std::make_unique<asio::ip::tcp::acceptor>(m_ios, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 4444));
+
     m_work = std::make_unique<asio::io_service::work>(m_ios);
     m_commandsMap[SERVER_CODES::PING] = std::make_unique<PingCommand>();
     m_commandsMap[SERVER_CODES::TRANSFER] = std::make_unique<TransferCommand>();
@@ -31,8 +34,11 @@ void Server::Start(uint port_num, uint thread_pool_size)
     if (thread_pool_size <= 0)
         throw std::runtime_error("No thread pool available for server");
 
-    m_acceptor.listen();
-    InitAcceptConnections();
+    for (auto& acceptor : m_acceptors)
+        acceptor.second->listen();
+
+    Listen(ConnectionProtocol::RAW);
+    Listen(ConnectionProtocol::WEBSOCKET);
 
     std::cout << "[Server] starting server with " << thread_pool_size << " threads.\n";
     std::cout << "[Server] server is already to accept connections\n";
@@ -44,7 +50,7 @@ void Server::Start(uint port_num, uint thread_pool_size)
         m_thread_pool.push_back(std::move(th));
     }
 
-    cout << "[Server] server started on port: " << port_num << endl;
+    cout << "[Server] server started: " << "raw: " << port_num << " Websocket: 4444" << endl;
 }
 
 void Server::Stop()
@@ -52,7 +58,9 @@ void Server::Stop()
     cout << "[Server] stopping accept connections" << endl;
     // stop accepting connections
     m_isStopped.store(true);
-    m_acceptor.close();
+
+    for (auto& acceptor : m_acceptors)
+        acceptor.second->close();
 
     // stop io_service
     m_ios.stop();
@@ -73,26 +81,69 @@ void Server::SetConnectionsLimit(uint limit)
     m_connections_limit = limit;
 }
 
-void Server::InitAcceptConnections()
+void Server::Listen(ConnectionProtocol protocol)
 {
-    auto sock = std::make_shared<asio::ip::tcp::socket>(m_ios);
+    auto & acceptor = m_acceptors[protocol];
+    auto socket = std::make_shared<asio::ip::tcp::socket>(m_ios);
 
-    m_acceptor.async_accept(*sock, [this, sock](const system::error_code & ec) {
-        if (!ec) {
-            if (m_players->size() >= m_connections_limit)
-                Server::RejectConnection(sock, SERVER_CODES::LIMIT_REACHED);
-            else
-                AuthenticatePlayer(sock);
-        }
-        else {
+    acceptor->async_accept(*socket, [this, socket, protocol](const system::error_code & ec) {
+        if (ec)
             cout << "[Server] failed to accept connection: " << ec.message() << endl;
+        else {
+            if (m_players->size() >= m_connections_limit)
+                Server::RejectConnection(socket, SERVER_CODES::LIMIT_REACHED);
+            else
+                protocol == ConnectionProtocol::RAW ?
+                    AcceptRawConnection(socket) :
+                    AcceptWebsocketConnection(socket);
         }
 
         // Init next async accept operation if acceptor has not been stopped yet
         if (!m_isStopped.load())
-            InitAcceptConnections();
+            Listen(protocol);
         else
             Stop();
+    });
+}
+
+void Server::AcceptRawConnection(std::shared_ptr<asio::ip::tcp::socket> sock)
+{
+    cout << "[Server] accepting raw connection from " << sock->remote_endpoint().address().to_string() << endl;
+    auto * response = new string{"[Server] raw connection accepted\n"};
+
+    asio::async_write(*sock, asio::buffer(*response), [response, sock](const system::error_code & ec, std::size_t bytes_transferred) {
+        if (ec.value() != 0)
+            cout << "[Server] failed to send accept response: " << ec.message() << endl;
+
+        sock->close();
+        delete response;
+    });
+}
+
+void Server::AcceptWebsocketConnection(std::shared_ptr<asio::ip::tcp::socket> sock)
+{
+    cout << "[Server] accepting websocket connection from " << sock->remote_endpoint().address().to_string() << endl;
+    auto buffer = new asio::streambuf{};
+
+    asio::async_read_until(*sock, (*buffer), "\r\n\r\n",
+        [this, buffer, sock](const system::error_code & ec, std::size_t bytes_transferred) {
+        if (ec.value() != 0) {
+            cout << "[Server] failed to read websocket request: " << ec.message() << endl;
+            sock->close();
+            return;
+        }
+
+        std::string request_data;
+        std::istream is(&(*buffer));
+        std::getline(is, request_data);
+        std::cout << "received: " << request_data << "\n";
+
+        if (Server::IsWebQuery(request_data)) {
+            nlohmann::json j = Server::ParseWebQuery(request_data);
+            AuthenticatePlayerHandler(sock, j);
+        } else {
+            Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
+        }
     });
 }
 
@@ -100,7 +151,7 @@ void Server::RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVE
 {
     cout << "[Server] rejecting connection from " <<
         sock->remote_endpoint().address().to_string() <<
-        " code: " << code;
+        " code: " << code << '\n';
 
     nlohmann::json j;
     j["code"] = std::to_string(static_cast<int>(code));
@@ -119,7 +170,7 @@ void Server::AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock)
 {
     auto * request = new asio::streambuf{};
 
-    asio::async_read_until(*sock, (*request), '\n',
+    asio::async_read_until(*sock, (*request), "\r\n\r\n",
        [this, request, sock](const system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to read authorization request: " << ec.message() << endl;
@@ -130,21 +181,31 @@ void Server::AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock)
         std::string request_data;
         std::istream is(&(*request));
         std::getline(is, request_data);
+        std::cout << "received: " << request_data << "\n";
 
-        try {
-            nlohmann::json j = nlohmann::json::parse(request_data);
+        if (Server::IsWebQuery(request_data)) {
+            nlohmann::json j = Server::ParseWebQuery(request_data);
             AuthenticatePlayerHandler(sock, j);
-        }
-        catch (const nlohmann::json::parse_error&) {
-            Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
+        } else {
+            try {
+                nlohmann::json j = nlohmann::json::parse(request_data);
+                AuthenticatePlayerHandler(sock, j);
+            }
+            catch (const nlohmann::json::parse_error&) {
+                Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
+            }
         }
 
+        // GET /socket.io/?code=5&username=edfcsx&password=123&EIO=4&transport=polling&t=OtjMnfa HTTP/1.1
         delete request;
     });
 }
 
 void Server::AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data) {
-    if (player_data["code"] == SERVER_CODES::AUTHENTICATE) {
+    std::cout << "received: " << player_data.dump() << "\n";
+    int code = std::atoi(player_data["code"].get<std::string>().c_str());
+
+    if (code == SERVER_CODES::AUTHENTICATE) {
         std::string username = player_data["username"];
         std::string password = player_data["password"];
 
@@ -205,4 +266,31 @@ bool Server::CheckPlayerExists(const std::string & username) {
 
 bool Server::CheckPlayerConnected(const std::string & username) {
     return (*m_players)[username]->m_connection && (*m_players)[username]->m_connection->IsOpen();
+}
+
+bool Server::IsWebQuery(const std::string & query) {
+    return query.find("HTTP/1.1") != std::string::npos;
+}
+
+nlohmann::json Server::ParseWebQuery(const std::string & query) {
+    nlohmann::json j;
+    std::string delimiter = "?";
+    std::string token = query.substr(query.find(delimiter) + 1, query.length());
+    std::string delimiter2 = "&";
+    size_t pos = 0;
+    std::string token2;
+
+    while ((pos = token.find(delimiter2)) != std::string::npos) {
+        token2 = token.substr(0, pos);
+        std::string delimiter3 = "=";
+        size_t pos2 = token2.find(delimiter3);
+        j[token2.substr(0, pos2)] = token2.substr(pos2 + 1, token2.length());
+        token.erase(0, pos + delimiter2.length());
+    }
+
+    std::string delimiter3 = "=";
+    size_t pos2 = token.find(delimiter3);
+    j[token.substr(0, pos2)] = token.substr(pos2 + 1, token.length());
+
+    return j;
 }

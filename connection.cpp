@@ -14,7 +14,7 @@ Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
     ListenIncomingMessages();
 
     cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
-    m_messagesOut.push_back(nlohmann::json{{"code", SERVER_CODES::AUTHENTICATE_SUCCESS }});
+    m_messagesOut.push_back(nlohmann::json{{ "code", SERVER_CODES::AUTHENTICATE_SUCCESS }});
 }
 
 Connection::~Connection()
@@ -36,7 +36,7 @@ void Connection::Close()
 
 void Connection::ListenIncomingMessages()
 {
-    asio::async_read_until(*m_sock, m_request, '\n',
+    asio::async_read_until(*m_sock, m_request, "\r\n\r\n",
     [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to read request: " << ec.message() << endl;
@@ -46,6 +46,8 @@ void Connection::ListenIncomingMessages()
         std::string message;
         std::istream is(&m_request);
         std::getline(is, message);
+
+        cout << "received: " << message << "\n";
 
         try {
             nlohmann::json j = nlohmann::json::parse(message);
@@ -92,4 +94,3 @@ void Connection::DispatchMessages() {
 void Connection::Send(nlohmann::json message) {
     m_messagesOut.push_back(message);
 }
-

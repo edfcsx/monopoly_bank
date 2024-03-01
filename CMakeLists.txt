@@ -49,6 +49,7 @@ add_executable (${PROJECT_NAME}
         icommand.h
         ping_command.h
         transfer_command.h
+        authenticate_command.h
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
