@@ -20,6 +20,7 @@ set(Boost_USE_MULTITHREADED  ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
 find_package(Boost)
+find_package(OpenSSL REQUIRED)
 
 # fim do uso do Boost
 
@@ -50,6 +51,10 @@ add_executable (${PROJECT_NAME}
         ping_command.h
         transfer_command.h
         authenticate_command.h
+        connection_manager.cpp
+        connection_manager.h
+        websocket_handshake.cpp
+        websocket_handshake.h
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
@@ -58,4 +63,4 @@ endif()
 
 # TODO: Adicione testes e instale destinos, se necessário.
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${Boost_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)

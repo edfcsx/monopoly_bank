@@ -14,11 +14,13 @@
 #endif // _WIN32_WINNT <= 0x0502
 #endif // BOOST_OS_WINDOWS
 
+#include <memory>
 #include <boost/asio.hpp>
 using namespace boost;
 
-#include <map>
 #include "json.hpp"
+
+typedef std::shared_ptr<asio::ip::tcp::socket> ptr_socket;
 
 enum SERVER_CODES: unsigned int
 {
@@ -41,6 +43,11 @@ enum SERVER_CODES: unsigned int
 struct NetworkingMessage {
     SERVER_CODES code;
     nlohmann::json data;
+};
+
+enum ConnectionProtocol: int {
+    RAW,
+    WEBSOCKET
 };
 
 #endif // NETWORKING_H_

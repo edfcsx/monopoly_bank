@@ -34,11 +34,11 @@ void Server::Start(uint port_num, uint thread_pool_size)
     if (thread_pool_size <= 0)
         throw std::runtime_error("No thread pool available for server");
 
-    for (auto& acceptor : m_acceptors)
-        acceptor.second->listen();
-
-    Listen(ConnectionProtocol::RAW);
-    Listen(ConnectionProtocol::WEBSOCKET);
+    for (auto& acc : m_acceptors) {
+        auto & [protocol, acceptor] = acc;
+        acceptor->listen();
+        Listen(protocol);
+    }
 
     std::cout << "[Server] starting server with " << thread_pool_size << " threads.\n";
     std::cout << "[Server] server is already to accept connections\n";
@@ -95,7 +95,7 @@ void Server::Listen(ConnectionProtocol protocol)
             else
                 protocol == ConnectionProtocol::RAW ?
                     AcceptRawConnection(socket) :
-                    AcceptWebsocketConnection(socket);
+                    ConnectionManager::GetInstance().AcceptWebsocketConnection(socket);
         }
 
         // Init next async accept operation if acceptor has not been stopped yet
@@ -117,33 +117,6 @@ void Server::AcceptRawConnection(std::shared_ptr<asio::ip::tcp::socket> sock)
 
         sock->close();
         delete response;
-    });
-}
-
-void Server::AcceptWebsocketConnection(std::shared_ptr<asio::ip::tcp::socket> sock)
-{
-    cout << "[Server] accepting websocket connection from " << sock->remote_endpoint().address().to_string() << endl;
-    auto buffer = new asio::streambuf{};
-
-    asio::async_read_until(*sock, (*buffer), "\r\n\r\n",
-        [this, buffer, sock](const system::error_code & ec, std::size_t bytes_transferred) {
-        if (ec.value() != 0) {
-            cout << "[Server] failed to read websocket request: " << ec.message() << endl;
-            sock->close();
-            return;
-        }
-
-        std::string request_data;
-        std::istream is(&(*buffer));
-        std::getline(is, request_data);
-        std::cout << "received: " << request_data << "\n";
-
-        if (Server::IsWebQuery(request_data)) {
-            nlohmann::json j = Server::ParseWebQuery(request_data);
-            AuthenticatePlayerHandler(sock, j);
-        } else {
-            Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
-        }
     });
 }
 
@@ -183,17 +156,12 @@ void Server::AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock)
         std::getline(is, request_data);
         std::cout << "received: " << request_data << "\n";
 
-        if (Server::IsWebQuery(request_data)) {
-            nlohmann::json j = Server::ParseWebQuery(request_data);
+        try {
+            nlohmann::json j = nlohmann::json::parse(request_data);
             AuthenticatePlayerHandler(sock, j);
-        } else {
-            try {
-                nlohmann::json j = nlohmann::json::parse(request_data);
-                AuthenticatePlayerHandler(sock, j);
-            }
-            catch (const nlohmann::json::parse_error&) {
-                Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
-            }
+        }
+        catch (const nlohmann::json::parse_error&) {
+            Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
         }
 
         // GET /socket.io/?code=5&username=edfcsx&password=123&EIO=4&transport=polling&t=OtjMnfa HTTP/1.1
@@ -266,31 +234,4 @@ bool Server::CheckPlayerExists(const std::string & username) {
 
 bool Server::CheckPlayerConnected(const std::string & username) {
     return (*m_players)[username]->m_connection && (*m_players)[username]->m_connection->IsOpen();
-}
-
-bool Server::IsWebQuery(const std::string & query) {
-    return query.find("HTTP/1.1") != std::string::npos;
-}
-
-nlohmann::json Server::ParseWebQuery(const std::string & query) {
-    nlohmann::json j;
-    std::string delimiter = "?";
-    std::string token = query.substr(query.find(delimiter) + 1, query.length());
-    std::string delimiter2 = "&";
-    size_t pos = 0;
-    std::string token2;
-
-    while ((pos = token.find(delimiter2)) != std::string::npos) {
-        token2 = token.substr(0, pos);
-        std::string delimiter3 = "=";
-        size_t pos2 = token2.find(delimiter3);
-        j[token2.substr(0, pos2)] = token2.substr(pos2 + 1, token2.length());
-        token.erase(0, pos + delimiter2.length());
-    }
-
-    std::string delimiter3 = "=";
-    size_t pos2 = token.find(delimiter3);
-    j[token.substr(0, pos2)] = token.substr(pos2 + 1, token.length());
-
-    return j;
 }

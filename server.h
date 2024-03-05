@@ -12,11 +12,7 @@
 #include "player.h"
 #include "json.hpp"
 #include "icommand.h"
-
-enum ConnectionProtocol: int {
-    RAW,
-    WEBSOCKET
-};
+#include "connection_manager.h"
 
 class Server
 {
@@ -58,12 +54,9 @@ public:
     bool CheckPlayerExistsAndConnected(const std::string & username);
     bool CheckPlayerExists(const std::string & username);
     bool CheckPlayerConnected(const std::string & username);
-    static bool IsWebQuery(const std::string & query);
-    static nlohmann::json ParseWebQuery(const std::string & query);
 private:
     void Listen(ConnectionProtocol protocol);
     void AcceptRawConnection(std::shared_ptr<asio::ip::tcp::socket> sock);
-    void AcceptWebsocketConnection(std::shared_ptr<asio::ip::tcp::socket> sock);
 
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
     void AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock);
