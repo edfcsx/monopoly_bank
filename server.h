@@ -38,6 +38,7 @@ private:
     std::vector<std::unique_ptr<std::thread>> m_thread_pool;
     std::unordered_map<ConnectionProtocol, std::unique_ptr<asio::ip::tcp::acceptor>> m_acceptors;
     std::atomic<bool> m_isStopped;
+    ConnectionManager m_connectionManager;
 
     uint m_connections_limit;
     std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
@@ -56,10 +57,8 @@ public:
     bool CheckPlayerConnected(const std::string & username);
 private:
     void Listen(ConnectionProtocol protocol);
-    void AcceptRawConnection(std::shared_ptr<asio::ip::tcp::socket> sock);
 
     static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
-    void AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock);
     void AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data);
 };
 

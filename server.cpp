@@ -94,8 +94,8 @@ void Server::Listen(ConnectionProtocol protocol)
                 Server::RejectConnection(socket, SERVER_CODES::LIMIT_REACHED);
             else
                 protocol == ConnectionProtocol::RAW ?
-                    AcceptRawConnection(socket) :
-                    ConnectionManager::GetInstance().AcceptWebsocketConnection(socket);
+                    m_connectionManager.AcceptRawConnection(socket) :
+                    m_connectionManager.AcceptWebsocketConnection(socket);
         }
 
         // Init next async accept operation if acceptor has not been stopped yet
@@ -103,20 +103,6 @@ void Server::Listen(ConnectionProtocol protocol)
             Listen(protocol);
         else
             Stop();
-    });
-}
-
-void Server::AcceptRawConnection(std::shared_ptr<asio::ip::tcp::socket> sock)
-{
-    cout << "[Server] accepting raw connection from " << sock->remote_endpoint().address().to_string() << endl;
-    auto * response = new string{"[Server] raw connection accepted\n"};
-
-    asio::async_write(*sock, asio::buffer(*response), [response, sock](const system::error_code & ec, std::size_t bytes_transferred) {
-        if (ec.value() != 0)
-            cout << "[Server] failed to send accept response: " << ec.message() << endl;
-
-        sock->close();
-        delete response;
     });
 }
 
@@ -136,36 +122,6 @@ void Server::RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVE
 
         sock->close();
         delete response;
-    });
-}
-
-void Server::AuthenticatePlayer(std::shared_ptr<asio::ip::tcp::socket> sock)
-{
-    auto * request = new asio::streambuf{};
-
-    asio::async_read_until(*sock, (*request), "\r\n\r\n",
-       [this, request, sock](const system::error_code & ec, std::size_t bytes_transferred) {
-        if (ec.value() != 0) {
-            cout << "[Server] failed to read authorization request: " << ec.message() << endl;
-            sock->close();
-            return;
-        }
-
-        std::string request_data;
-        std::istream is(&(*request));
-        std::getline(is, request_data);
-        std::cout << "received: " << request_data << "\n";
-
-        try {
-            nlohmann::json j = nlohmann::json::parse(request_data);
-            AuthenticatePlayerHandler(sock, j);
-        }
-        catch (const nlohmann::json::parse_error&) {
-            Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
-        }
-
-        // GET /socket.io/?code=5&username=edfcsx&password=123&EIO=4&transport=polling&t=OtjMnfa HTTP/1.1
-        delete request;
     });
 }
 

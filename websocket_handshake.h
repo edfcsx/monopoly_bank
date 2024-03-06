@@ -11,17 +11,21 @@
 #include <openssl/evp.h>
 #include "networking.h"
 
+class ConnectionManager;
+typedef void (*HandshakeCallback)(ptr_socket sock, ConnectionManager * manager);
+
 class WebSocketHandshake
 {
 public:
-    WebSocketHandshake(std::shared_ptr<asio::ip::tcp::socket> sock);
+    WebSocketHandshake(std::shared_ptr<asio::ip::tcp::socket> sock, ConnectionManager * manager, HandshakeCallback callback);
     ~WebSocketHandshake() = default;
 
 private:
     std::map<std::string, std::string> m_headers;
     std::shared_ptr<asio::ip::tcp::socket> m_sock;
+    ConnectionManager * m_manager;
     asio::streambuf m_request_buf;
-    std::istream m_request_stream;
+    HandshakeCallback m_callback;
 private:
     void OnHeadersReceived(const boost::system::error_code & ec, std::size_t bytes_transferred);
     void OnFinish(const boost::system::error_code & ec);

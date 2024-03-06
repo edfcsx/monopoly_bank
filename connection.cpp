@@ -36,7 +36,7 @@ void Connection::Close()
 
 void Connection::ListenIncomingMessages()
 {
-    asio::async_read_until(*m_sock, m_request, "\r\n\r\n",
+    asio::async_read_until(*m_sock, m_request, "\n",
     [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to read request: " << ec.message() << endl;
@@ -93,4 +93,8 @@ void Connection::DispatchMessages() {
 
 void Connection::Send(nlohmann::json message) {
     m_messagesOut.push_back(message);
+}
+
+void Connection::SetConnectionId(std::string & id) {
+    m_id = id;
 }

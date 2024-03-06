@@ -2,27 +2,32 @@
 #define CONNECTION_MANAGER_H_
 
 #include <memory>
+#include <mutex>
+#include <iostream>
 #include "networking.h"
 #include "websocket_handshake.h"
+#include "player.h"
+#include "connection.h"
+#include "uuid.h"
 
 class ConnectionManager
 {
 public:
-    static ConnectionManager& GetInstance() {
-        static ConnectionManager instance;
-        return instance;
-    }
+    ConnectionManager();
+    ~ConnectionManager();
 
 private:
-    ConnectionManager() = default;
-    ~ConnectionManager() = default;
+    std::shared_ptr<std::unordered_map<std::string, Connection *>> m_connections;
+    std::mutex m_connectionsMutex;
 
-    // Delete copy and move constructors and assign operators
-    // to prevent any copies of your singleton
-    ConnectionManager(ConnectionManager const&);
-    void operator=(ConnectionManager const&);
+    std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
+    std::mutex m_playersMutex;
 public:
     void AcceptWebsocketConnection(ptr_socket sock);
+    void AcceptRawConnection(ptr_socket sock);
+
+private:
+    static void RejectConnection(ptr_socket sock, SERVER_CODES status);
 };
 
 #endif // CONNECTION_MANAGER_H_

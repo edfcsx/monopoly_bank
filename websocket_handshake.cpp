@@ -1,8 +1,9 @@
 #include "websocket_handshake.h"
 
-WebSocketHandshake::WebSocketHandshake(ptr_socket sock):
+WebSocketHandshake::WebSocketHandshake(ptr_socket sock, ConnectionManager * manager, HandshakeCallback callback):
     m_sock(sock),
-    m_request_stream(&m_request_buf)
+    m_manager(manager),
+    m_callback(callback)
 {
     // read handshake request status line
     asio::async_read_until(*m_sock, m_request_buf, "\r\n\r\n",
@@ -17,10 +18,11 @@ void WebSocketHandshake::OnFinish(const boost::system::error_code & ec)
     if (ec.value() != 0) {
         std::cout << "[Server] failed to read websocket request: " << ec.message() << std::endl;
         m_sock->close();
-        return;
+    } else {
+        m_callback(m_sock, m_manager);
     }
 
-    std::cout << "[Server] websocket handshake completed\n";
+    delete this;
 }
 
 void WebSocketHandshake::OnHeadersReceived(const boost::system::error_code & ec, std::size_t bytes_transfered)
@@ -77,17 +79,18 @@ void WebSocketHandshake::OnHeadersReceived(const boost::system::error_code & ec,
 
 void WebSocketHandshake::RespondToHandshake()
 {
-    std::string acceptValue = CalculateWebsocketAcceptValue(m_headers["Sec-WebSocket-Key"]);
+    auto * acceptValue = new std::string(CalculateWebsocketAcceptValue(m_headers["Sec-WebSocket-Key"]));
 
     std::string response = "HTTP/1.1 101 Switching Protocols\r\n";
     response += "Upgrade: websocket\r\n";
     response += "Connection: Upgrade\r\n";
-    response += "Sec-WebSocket-Accept: " + acceptValue + "\r\n";
+    response += "Sec-WebSocket-Accept: " + *acceptValue + "\r\n";
     response += "\r\n";
 
     asio::async_write(*m_sock, asio::buffer(response),
-        [this](const system::error_code & ec, std::size_t bytes_transferred) {
+        [this, acceptValue](const system::error_code & ec, std::size_t bytes_transferred) {
             OnFinish(ec);
+            delete acceptValue;
         }
     );
 }

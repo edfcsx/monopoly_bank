@@ -18,6 +18,7 @@ public:
     void Close();
     [[nodiscard]] bool IsOpen() const;
 private:
+    std::string m_id;
     bool m_isOpen;
     std::shared_ptr<asio::ip::tcp::socket> m_sock;
     asio::streambuf m_request;
@@ -27,6 +28,7 @@ private:
 public:
     void DispatchMessages();
     void Send(nlohmann::json message);
+    void SetConnectionId(std::string & id);
 private:
     void ListenIncomingMessages();
 };
