@@ -79,18 +79,20 @@ void WebSocketHandshake::OnHeadersReceived(const boost::system::error_code & ec,
 
 void WebSocketHandshake::RespondToHandshake()
 {
-    auto * acceptValue = new std::string(CalculateWebsocketAcceptValue(m_headers["Sec-WebSocket-Key"]));
+    std::string acceptValue = CalculateWebsocketAcceptValue(m_headers["Sec-WebSocket-Key"]);
 
-    std::string response = "HTTP/1.1 101 Switching Protocols\r\n";
-    response += "Upgrade: websocket\r\n";
-    response += "Connection: Upgrade\r\n";
-    response += "Sec-WebSocket-Accept: " + *acceptValue + "\r\n";
-    response += "\r\n";
+    auto * response = new std::string{
+        "HTTP/1.1 101 Switching Protocols\r\n"
+        "Upgrade: websocket\r\n"
+        "Connection: Upgrade\r\n"
+        "Sec-WebSocket-Accept: " + acceptValue +
+        "\r\n\r\n"
+    };
 
-    asio::async_write(*m_sock, asio::buffer(response),
-        [this, acceptValue](const system::error_code & ec, std::size_t bytes_transferred) {
+    asio::async_write(*m_sock, asio::buffer(*response),
+        [this, response](const system::error_code & ec, std::size_t bytes_transferred) {
             OnFinish(ec);
-            delete acceptValue;
+            delete response;
         }
     );
 }

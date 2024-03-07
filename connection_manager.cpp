@@ -1,4 +1,5 @@
 #include "connection_manager.h"
+#include <iostream>
 
 ConnectionManager::ConnectionManager() :
     m_connections(std::make_shared<std::unordered_map<std::string, Connection *>>())
@@ -11,15 +12,21 @@ ConnectionManager::~ConnectionManager()
         delete conn;
     }
 
+    m_connections->clear();
+
     for (auto & playerList : *m_players) {
         auto & [username, player] = playerList;
         delete player;
     }
+
+    m_players->clear();
 }
 
 void ConnectionManager::AcceptWebsocketConnection(ptr_socket sock)
 {
     new WebSocketHandshake{sock, this, [](ptr_socket ret_sock, ConnectionManager * manager) {
+        std::cout << "connection from websocket\n";
+
         auto id = UUID::v4();
         auto * connection = new Connection(ret_sock);
         connection->SetConnectionId(id);
