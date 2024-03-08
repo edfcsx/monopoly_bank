@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+</body>
+    <button id="sendHello">Send Hello</button>
+<script>
+var ws;
+
+window.onload = function() {
+    ws = new WebSocket("ws://localhost:4444");
+
+    ws.onmessage = function(evt) {
+        console.log(evt.data);
+    };
+
+    ws.onopen = function(evt) {
+        console.log('Connected....')
+    }
+
+    document.getElementById('sendHello').addEventListener('click', function() {
+        ws.send('Hello');
+    });
+}
+
+</script>
+</html>

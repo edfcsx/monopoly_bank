@@ -19,17 +19,8 @@ set(Boost_USE_DEBUG_LIBS     OFF)
 set(Boost_USE_MULTITHREADED  ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-find_package(Boost)
+find_package(Boost REQUIRED)
 find_package(OpenSSL REQUIRED)
-
-# fim do uso do Boost
-
-# variaveis da biblioteca ws2_32 para o uso de sockets
-set(USE_WS2_32 OFF)
-
-if(WIN32 AND USE_WS2_32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32)
-endif()
 
 if(NOT Boost_FOUND)
     message(FATAL_ERROR "Boost not found.")

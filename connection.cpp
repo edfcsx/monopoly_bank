@@ -2,7 +2,6 @@
 #include <string>
 #include "connection.h"
 #include "server.h"
-#include <unicode/utf.h>
 
 using std::cout;
 using std::endl;
@@ -37,60 +36,49 @@ void Connection::Close()
 
 void Connection::ListenIncomingMessages()
 {
-    asio::async_read(*m_sock, m_request, asio::transfer_at_least(1),
+    asio::async_read(*m_sock, m_request, asio::transfer_exactly(2),
      [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to read request: " << ec.message() << endl;
             return;
         }
 
-         // Converta o conteúdo do buffer para uma string
-         std::string raw_data(asio::buffers_begin(m_request.data()),
-                              asio::buffers_begin(m_request.data()) + bytes_transferred);
+        std::istream stream(&m_request);
+        std::array<unsigned char, 2> first_bytes{};
+        stream.read((char *)&first_bytes[0], 2);
 
-         // Converta os dados brutos para UTF-8 usando a biblioteca ICU
-         icu::UnicodeString utf8_data = icu::UnicodeString::fromUTF8(raw_data);
+        unsigned char opcode = first_bytes[0];
 
+        if (opcode < 128) {
+            cout << "[Server] close connection if unmasked message from client";
+            // @todo: implements close connection handshake
+            m_sock->close();
+        }
 
-         cout << "received: " << bytes_transferred << "\n";
-         cout << "data: " << utf8_data << "\n";  // Imprima os dados recebidos
+        std::size_t length = first_bytes[1] & 0x7F;
+        m_request.consume(bytes_transferred);
 
-         m_request.consume(bytes_transferred);
-         ListenIncomingMessages();
+        // 4 bytes to read mask
+        asio::async_read(*m_sock, m_request, asio::transfer_exactly(4 + length),
+         [this, length](const boost::system::error_code & ec, std::size_t bytes_transferred) {
+            // read mask
+            std::istream stream(&m_request);
+            std::array<unsigned char, 4> mask{};
+            stream.read((char *)&mask[0], 4);
+
+             std::vector<unsigned char> data(length);
+             stream.read((char *)data.data(), length);
+
+             for (std::size_t i = 0; i < length; ++i) {
+                 data[i] ^= mask[i % 4];
+             }
+
+             std::string message(data.begin(), data.end());
+             cout << "[Server] received message: " << message << endl;
+
+             ListenIncomingMessages();
+        });
     });
-
-//    asio::async_read_until(*m_sock, m_request, "\n",
-//    [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
-//        if (ec.value() != 0) {
-//            cout << "[Server] failed to read request: " << ec.message() << endl;
-//            return;
-//        }
-//
-//
-//
-//        std::string message;
-//        std::istream is(&m_request);
-//        std::getline(is, message);
-//
-//        cout << "received: " << message << "\n";
-//
-//        try {
-//            nlohmann::json j = nlohmann::json::parse(message);
-//
-//            if (j.contains("code")) {
-//                NetworkingMessage msg;
-//                msg.code = static_cast<SERVER_CODES>(static_cast<uint>(j["code"]));
-//                msg.data = j;
-////                Server::getInstance().PushMessage(msg);
-//            }
-//        }
-//        catch (nlohmann::json::parse_error & e) {
-//            cout << "[Server] failed to parse message: " << e.what() << endl;
-//        }
-//
-//        m_request.consume(m_request.size());
-//        ListenIncomingMessages();
-//    });
 }
 
 bool Connection::IsOpen() const {
