@@ -7,7 +7,6 @@
 #include <list>
 #include <unordered_map>
 
-#include "types.h"
 #include "networking.h"
 #include "player.h"
 #include "json.hpp"
@@ -36,30 +35,26 @@ private:
     asio::io_service m_ios;
     std::unique_ptr<asio::io_service::work> m_work;
     std::vector<std::unique_ptr<std::thread>> m_thread_pool;
-    std::unordered_map<ConnectionProtocol, std::unique_ptr<asio::ip::tcp::acceptor>> m_acceptors;
+    std::unordered_map<ConnProtocol, std::unique_ptr<tcp_acceptor>> m_acceptors;
     std::atomic<bool> m_isStopped;
-    ConnectionManager m_connectionManager;
-
-    uint m_connections_limit;
-    std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
+    ConnectionManager m_connections;
 
     std::list<NetworkingMessage> m_messagesIn;
     std::unordered_map<SERVER_CODES, std::unique_ptr<Icommand>> m_commandsMap;
 public:
-    void Start(uint port_num, uint thread_pool_size);
+    void Start(uint thread_pool_size);
     void Stop();
-    void SetConnectionsLimit(uint limit);
-    std::shared_ptr<std::unordered_map<std::string, Player *>> GetPlayers();
-    void PushMessage(NetworkingMessage message);
-    void ProcessMessages();
-    bool CheckPlayerExistsAndConnected(const std::string & username);
-    bool CheckPlayerExists(const std::string & username);
-    bool CheckPlayerConnected(const std::string & username);
+//    std::shared_ptr<std::unordered_map<std::string, Player *>> GetPlayers();
+//    void PushMessage(NetworkingMessage message);
+//    void ProcessMessages();
+//    bool CheckPlayerExistsAndConnected(const std::string & username);
+//    bool CheckPlayerExists(const std::string & username);
+//    bool CheckPlayerConnected(const std::string & username);
 private:
-    void Listen(ConnectionProtocol protocol);
-
-    static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
-    void AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data);
+    void listen(ConnProtocol protocol);
+//
+//    static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
+//    void AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data);
 };
 
 #endif // SERVER_H_

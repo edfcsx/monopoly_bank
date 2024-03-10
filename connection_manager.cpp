@@ -1,48 +1,12 @@
 #include "connection_manager.h"
-#include <iostream>
 
 ConnectionManager::ConnectionManager() :
-    m_connections(std::make_shared<std::unordered_map<std::string, Connection *>>())
+    m_connections(std::unordered_map<std::string, std::unique_ptr<Connection>>())
 {}
 
 ConnectionManager::~ConnectionManager()
 {
-    for (auto & connection : *m_connections) {
-        auto & [id, conn] = connection;
-        delete conn;
-    }
-
-    m_connections->clear();
-
-    for (auto & playerList : *m_players) {
-        auto & [username, player] = playerList;
-        delete player;
-    }
-
-    m_players->clear();
-}
-
-void ConnectionManager::AcceptWebsocketConnection(ptr_socket sock)
-{
-    new WebSocketHandshake{sock, this, [](ptr_socket ret_sock, ConnectionManager * manager) {
-        std::cout << "connection from websocket\n";
-
-        auto id = UUID::v4();
-        auto * connection = new Connection(ret_sock);
-        connection->SetConnectionId(id);
-
-        std::lock_guard lock(manager->m_connectionsMutex);
-        manager->m_connections->insert({id, connection });
-    }};
-}
-
-void ConnectionManager::AcceptRawConnection(ptr_socket sock)
-{
-    auto id = UUID::v4();
-    auto * connection = new Connection(sock);
-    connection->SetConnectionId(id);
-    std::lock_guard lock(m_connectionsMutex);
-    m_connections->insert({id, connection });
+    m_connections.clear();
 }
 
 void ConnectionManager::RejectConnection(ptr_socket sock, SERVER_CODES status)
@@ -62,4 +26,25 @@ void ConnectionManager::RejectConnection(ptr_socket sock, SERVER_CODES status)
         sock->close();
         delete response;
     });
+}
+
+void ConnectionManager::accept_connection(tcp_socket socket, ConnProtocol p)
+{
+    if (p == ConnProtocol::RAW) {
+        std::lock_guard<std::mutex> lock(m_connections_lock);
+
+        m_connections.insert({
+            socket->remote_endpoint().address().to_string(),
+            std::make_unique<Connection>(socket)
+        });
+    } else if (p == ConnProtocol::WEBSOCKET) {
+        auto * handshake = new WebSocketHandshake(socket, this, [](ptr_socket sock, ConnectionManager * self) {
+            std::lock_guard<std::mutex> lock(self->m_connections_lock);
+
+            self->m_connections.insert({
+                sock->remote_endpoint().address().to_string(),
+                std::make_unique<Connection>(sock)
+            });
+        });
+    }
 }

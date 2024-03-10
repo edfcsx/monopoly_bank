@@ -3,7 +3,6 @@
 
 #include <string>
 #include "networking.h"
-#include "types.h"
 #include "connection.h"
 
 using std::string;

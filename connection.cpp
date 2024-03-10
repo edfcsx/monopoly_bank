@@ -7,8 +7,8 @@ using std::cout;
 using std::endl;
 using std::string;
 
-Connection::Connection(std::shared_ptr<asio::ip::tcp::socket> sock) :
-    m_sock(sock),
+Connection::Connection(tcp_socket socket) :
+    m_sock(std::move(socket)),
     m_isOpen(true)
 {
     ListenIncomingMessages();
@@ -106,8 +106,4 @@ void Connection::DispatchMessages() {
 
 void Connection::Send(nlohmann::json message) {
     m_messagesOut.push_back(message);
-}
-
-void Connection::SetConnectionId(std::string & id) {
-    m_id = id;
 }

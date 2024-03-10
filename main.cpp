@@ -20,17 +20,15 @@ int main()
             thread_pool_size = DEFAULT_THREAD_POOL_SIZE;
 
         Server &server = Server::getInstance();
-
-        server.SetConnectionsLimit(5);
-        server.Start(3333, thread_pool_size);
+        server.Start(thread_pool_size);
 
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-            for (auto& [_, player] : *server.GetPlayers()) {
-                player->DispatchMessages();
-                server.ProcessMessages();
-            }
+//            for (auto& [_, player] : *server.GetPlayers()) {
+//                player->DispatchMessages();
+//                server.ProcessMessages();
+//            }
         }
     }
     catch (const std::system_error & e)

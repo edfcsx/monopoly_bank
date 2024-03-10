@@ -1,6 +1,6 @@
 #include "websocket_handshake.h"
 
-WebSocketHandshake::WebSocketHandshake(ptr_socket sock, ConnectionManager * manager, HandshakeCallback callback):
+WebSocketHandshake::WebSocketHandshake(tcp_socket sock, ConnectionManager * manager, HandshakeCallback callback):
     m_sock(sock),
     m_manager(manager),
     m_callback(callback)

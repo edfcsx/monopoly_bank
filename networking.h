@@ -20,7 +20,15 @@ using namespace boost;
 
 #include "json.hpp"
 
+// types from asio
 typedef std::shared_ptr<asio::ip::tcp::socket> ptr_socket;
+typedef std::shared_ptr<asio::ip::tcp::socket> tcp_socket;
+typedef asio::ip::tcp::endpoint tcp_endpoint;
+typedef asio::ip::tcp::acceptor tcp_acceptor;
+
+// types from basic types
+typedef unsigned int uint;
+
 
 enum SERVER_CODES: unsigned int
 {
@@ -45,7 +53,7 @@ struct NetworkingMessage {
     nlohmann::json data;
 };
 
-enum ConnectionProtocol: int {
+enum ConnProtocol: int {
     RAW,
     WEBSOCKET
 };

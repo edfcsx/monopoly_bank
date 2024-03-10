@@ -8,7 +8,6 @@
 #include "websocket_handshake.h"
 #include "player.h"
 #include "connection.h"
-#include "uuid.h"
 
 class ConnectionManager
 {
@@ -17,15 +16,13 @@ public:
     ~ConnectionManager();
 
 private:
-    std::shared_ptr<std::unordered_map<std::string, Connection *>> m_connections;
-    std::mutex m_connectionsMutex;
+    std::unordered_map<std::string, std::unique_ptr<Connection>> m_connections;
+    std::mutex m_connections_lock;
 
     std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
     std::mutex m_playersMutex;
 public:
-    void AcceptWebsocketConnection(ptr_socket sock);
-    void AcceptRawConnection(ptr_socket sock);
-
+    void accept_connection(tcp_socket socket, ConnProtocol p);
 private:
     static void RejectConnection(ptr_socket sock, SERVER_CODES status);
 };

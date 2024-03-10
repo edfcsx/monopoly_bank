@@ -17,7 +17,7 @@ typedef void (*HandshakeCallback)(ptr_socket sock, ConnectionManager * manager);
 class WebSocketHandshake
 {
 public:
-    WebSocketHandshake(std::shared_ptr<asio::ip::tcp::socket> sock, ConnectionManager * manager, HandshakeCallback callback);
+    WebSocketHandshake(tcp_socket socket, ConnectionManager * manager, HandshakeCallback callback);
     ~WebSocketHandshake() = default;
 
 private:
