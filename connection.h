@@ -9,8 +9,7 @@
 
 using std::vector;
 
-class Connection : public std::enable_shared_from_this<Connection>
-{
+class Connection {
 public:
     Connection(tcp_socket socket, ConnProtocol p);
     ~Connection();
