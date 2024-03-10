@@ -1,15 +1,15 @@
 #include <iostream>
 #include <string>
 #include "connection.h"
-#include "server.h"
 
 using std::cout;
 using std::endl;
 using std::string;
 
-Connection::Connection(tcp_socket socket) :
+Connection::Connection(tcp_socket socket, ConnProtocol p) :
     m_sock(std::move(socket)),
-    m_isOpen(true)
+    m_isOpen(true),
+    m_protocol(p)
 {
     ListenIncomingMessages();
 

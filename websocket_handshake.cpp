@@ -8,12 +8,12 @@ WebSocketHandshake::WebSocketHandshake(tcp_socket sock, ConnectionManager * mana
     // read handshake request status line
     asio::async_read_until(*m_sock, m_request_buf, "\r\n\r\n",
         [this](const system::error_code & ec, std::size_t bytes_transferred) {
-            OnHeadersReceived(ec, bytes_transferred);
+            on_headers_received(ec, bytes_transferred);
         }
     );
 }
 
-void WebSocketHandshake::OnFinish(const boost::system::error_code & ec)
+void WebSocketHandshake::on_finish(const boost::system::error_code & ec)
 {
     if (ec.value() != 0) {
         std::cout << "[Server] failed to read websocket request: " << ec.message() << std::endl;
@@ -25,10 +25,10 @@ void WebSocketHandshake::OnFinish(const boost::system::error_code & ec)
     delete this;
 }
 
-void WebSocketHandshake::OnHeadersReceived(const boost::system::error_code & ec, std::size_t bytes_transfered)
+void WebSocketHandshake::on_headers_received(const boost::system::error_code & ec, std::size_t bytes_transfered)
 {
     if (ec.value() != 0) {
-        OnFinish(ec);
+        on_finish(ec);
         return;
     }
 
@@ -38,7 +38,7 @@ void WebSocketHandshake::OnHeadersReceived(const boost::system::error_code & ec,
 
     // check protocol is HTTP/1.1
     if (request_data.find("HTTP/1.1") == std::string::npos) {
-        OnFinish({boost::system::errc::make_error_code(boost::system::errc::protocol_error)});
+        on_finish({boost::system::errc::make_error_code(boost::system::errc::protocol_error)});
         return;
     }
 
@@ -70,16 +70,16 @@ void WebSocketHandshake::OnHeadersReceived(const boost::system::error_code & ec,
     }
 
     if (m_headers.find("Sec-WebSocket-Key") == m_headers.end()) {
-        OnFinish({boost::system::errc::make_error_code(boost::system::errc::protocol_error)});
+        on_finish({boost::system::errc::make_error_code(boost::system::errc::protocol_error)});
         return;
     } else {
-        RespondToHandshake();
+        response_request();
     }
 }
 
-void WebSocketHandshake::RespondToHandshake()
+void WebSocketHandshake::response_request()
 {
-    std::string acceptValue = CalculateWebsocketAcceptValue(m_headers["Sec-WebSocket-Key"]);
+    std::string acceptValue = generate_handshake_accept_value(m_headers["Sec-WebSocket-Key"]);
 
     auto * response = new std::string{
         "HTTP/1.1 101 Switching Protocols\r\n"
@@ -91,13 +91,13 @@ void WebSocketHandshake::RespondToHandshake()
 
     asio::async_write(*m_sock, asio::buffer(*response),
         [this, response](const system::error_code & ec, std::size_t bytes_transferred) {
-            OnFinish(ec);
+            on_finish(ec);
             delete response;
         }
     );
 }
 
-std::string WebSocketHandshake::CalculateWebsocketAcceptValue(const std::string &request_key) {
+std::string WebSocketHandshake::generate_handshake_accept_value(const std::string &request_key) {
     std::string magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     std::string combined = request_key + magic_string;
 

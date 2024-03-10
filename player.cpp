@@ -8,7 +8,7 @@ Player::Player(
 ) :
     m_username(std::move(username)),
     m_password(std::move(password)),
-    m_connection(std::make_unique<Connection>(sock)),
+    m_connection(std::make_unique<Connection>(sock, ConnProtocol::RAW)),
     m_money(100'000)
 {
     // send the profile to the client
@@ -27,7 +27,7 @@ void Player::AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock) {
         }
     }
 
-    m_connection = std::make_unique<Connection>(sock);
+    m_connection = std::make_unique<Connection>(sock, ConnProtocol::RAW);
 }
 
 string Player::GetPassword() const {

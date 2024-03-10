@@ -27,10 +27,10 @@ private:
     asio::streambuf m_request_buf;
     HandshakeCallback m_callback;
 private:
-    void OnHeadersReceived(const boost::system::error_code & ec, std::size_t bytes_transferred);
-    void OnFinish(const boost::system::error_code & ec);
-    void RespondToHandshake();
-    std::string CalculateWebsocketAcceptValue(const std::string & request_key);
+    void on_headers_received(const boost::system::error_code & ec, std::size_t bytes_transferred);
+    void on_finish(const boost::system::error_code & ec);
+    void response_request();
+    std::string generate_handshake_accept_value(const std::string & request_key);
 };
 
 #endif // WEB_SOCKET_HANDSHAKE_H_

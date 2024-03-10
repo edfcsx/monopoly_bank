@@ -35,7 +35,7 @@ void ConnectionManager::accept_connection(tcp_socket socket, ConnProtocol p)
 
         m_connections.insert({
             socket->remote_endpoint().address().to_string(),
-            std::make_unique<Connection>(socket)
+            std::make_unique<Connection>(socket, p)
         });
     } else if (p == ConnProtocol::WEBSOCKET) {
         auto * handshake = new WebSocketHandshake(socket, this, [](ptr_socket sock, ConnectionManager * self) {
@@ -43,7 +43,7 @@ void ConnectionManager::accept_connection(tcp_socket socket, ConnProtocol p)
 
             self->m_connections.insert({
                 sock->remote_endpoint().address().to_string(),
-                std::make_unique<Connection>(sock)
+                std::make_unique<Connection>(sock, ConnProtocol::WEBSOCKET)
             });
         });
     }
