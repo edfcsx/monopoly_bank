@@ -13,7 +13,7 @@ const unsigned int MSG_MASK_SIZE = 4;
 const std::size_t MAX_MESSAGE_SIZE = std::numeric_limits<std::size_t>::max();
 
 namespace connection {
-    enum msg_type: unsigned char {
+    enum opcode: unsigned char {
         CONTINUATION = 0x0,
         TEXT = 0x1,
         BINARY = 0x2,
@@ -26,13 +26,11 @@ namespace connection {
 
 namespace connection {
     struct message {
-
+        unsigned char type;
         std::size_t length;
         asio::streambuf buffer;
-        int type;
         bool unique;
         std::size_t additional_bytes;
-
 
         void clear_buffer() {
             buffer.consume(buffer.size());
@@ -41,7 +39,7 @@ namespace connection {
         void reset() {
             length = 0;
             clear_buffer();
-            type = connection::msg_type::TEXT;
+            type = connection::opcode::TEXT;
             unique = false;
         }
     };
@@ -70,6 +68,7 @@ private:
     void listen_raw_messages();
     void listen_websocket_messages();
     void read_websocket_message_content();
+    void send_data(const std::string & data, connection::opcode c);
 };
 
 #endif // CONNECTION_H_

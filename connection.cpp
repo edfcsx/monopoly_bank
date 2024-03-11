@@ -64,7 +64,7 @@ void Connection::listen_websocket_messages()
         m_message.type = first_bytes[0] & 0x0F;
         m_message.unique = (first_bytes[0] & 0x80) == 0x80;
 
-        if (m_message.type != connection::msg_type::TEXT) {
+        if (m_message.type != connection::opcode::TEXT) {
             cout << "[Server] close connection if message type is not text";
             // @todo: implements close connection handshake
             // send_close(1003, "message type is not text");
@@ -136,7 +136,7 @@ void Connection::read_websocket_message_content()
 
          std::string message(data.begin(), data.end());
          cout << "[Server] received message: " << message << endl;
-
+         send_data("Hello, client!", connection::opcode::TEXT);
          listen_websocket_messages();
      });
 }
@@ -195,4 +195,38 @@ void Connection::DispatchMessages() {
 
 void Connection::Send(nlohmann::json message) {
     m_messagesOut.push_back(message);
+}
+
+void Connection::send_data(const std::string & data, connection::opcode c) {
+    std::vector<unsigned char> frame;
+
+    // first byte: FIN + opcode
+    frame.push_back(0x80 | c);  // FIN = 1 (mensagem final)
+
+    // second byte: MASK + length
+    if (data.size() <= 125) {
+        frame.push_back(data.size()); // MASK = 0 (mensagem não mascarada), length <= 125
+    } else if (data.size() <= 65535) {
+        frame.push_back(126); // MASK = 0, length = 126
+        frame.push_back((data.size() >> 8) & 0xFF); // coloca os 8 bits mais significativos
+        frame.push_back(data.size() & 0xFF);    // coloca os 8 bits menos significativos
+    } else {
+        frame.push_back(127); // MASK = 0, length => 65535
+        for (int i = 7; i >= 0; --i) {
+            frame.push_back((data.size() >> (8 * i)) & 0xFF);  // coloca os 8 bits mais significativos
+        }
+    }
+
+    // append the data
+    frame.insert(frame.end(), data.begin(), data.end());
+
+    // send the frame
+    asio::async_write(*m_sock, asio::buffer(frame),
+    [frame](const boost::system::error_code & ec, std::size_t bytes_transferred) {
+        if (ec.value() != 0) {
+            cout << "[Server] failed to write message: " << ec.message() << endl;
+        }
+
+        std::cout << "[Server] sent message: " << bytes_transferred << " bytes" << std::endl;
+    });
 }
