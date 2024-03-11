@@ -18,11 +18,11 @@ Player::Player(
 Player::~Player() {}
 
 void Player::AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock) {
-    if (m_connection && m_connection->IsOpen()) {
+    if (m_connection && m_connection->is_open()) {
         m_connection->Close();
 
         // wait for the connection to close
-        while (m_connection->IsOpen()) {
+        while (m_connection->is_open()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
@@ -35,12 +35,12 @@ string Player::GetPassword() const {
 }
 
 void Player::DispatchMessages() {
-    if (m_connection && m_connection->IsOpen())
+    if (m_connection && m_connection->is_open())
         m_connection->DispatchMessages();
 }
 
 void Player::SendProfile() {
-    if (m_connection && m_connection->IsOpen()) {
+    if (m_connection && m_connection->is_open()) {
 
         nlohmann::json j = {
             {"code", SERVER_CODES::SEND_PROFILE},

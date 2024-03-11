@@ -13,7 +13,7 @@ public:
             std::string username = data["username"];
 
             if (m_players->find(username) != m_players->end()) {
-                if ((*m_players)[username]->m_connection && (*m_players)[username]->m_connection->IsOpen()) {
+                if ((*m_players)[username]->m_connection && (*m_players)[username]->m_connection->is_open()) {
                     (*m_players)[username]->m_connection->Send(nlohmann::json{
                         {"code", SERVER_CODES::PING_RESPONSE},
                         {"message", "Pong!"}
