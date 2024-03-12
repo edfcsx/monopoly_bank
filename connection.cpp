@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <utility>
 #include "connection.h"
 
 using std::cout;
@@ -10,10 +11,9 @@ Connection::Connection(tcp_socket socket, ConnProtocol p, connection::on_close_c
     m_sock(std::move(socket)),
     m_isOpen(true),
     m_protocol(p),
-    m_close_callback(on_close)
+    m_close_callback(std::move(on_close))
 {
     cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
-    m_messagesOut.push_back(nlohmann::json{{ "code", SERVER_CODES::AUTHENTICATE_SUCCESS }});
 
     if (m_protocol == ConnProtocol::RAW) {
         listen_raw_messages();

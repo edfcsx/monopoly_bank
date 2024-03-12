@@ -12,20 +12,19 @@
 #include "networking.h"
 
 class ConnectionManager;
-typedef void (*HandshakeCallback)(ptr_socket sock, ConnectionManager * manager);
 
+using handshake_callback = std::function<void(ptr_socket sock)>;
 class WebSocketHandshake
 {
 public:
-    WebSocketHandshake(tcp_socket socket, ConnectionManager * manager, HandshakeCallback callback);
+    WebSocketHandshake(tcp_socket socket, handshake_callback c);
     ~WebSocketHandshake() = default;
 
 private:
     std::map<std::string, std::string> m_headers;
     std::shared_ptr<asio::ip::tcp::socket> m_sock;
-    ConnectionManager * m_manager;
     asio::streambuf m_request_buf;
-    HandshakeCallback m_callback;
+    handshake_callback m_callback;
 private:
     void on_headers_received(const boost::system::error_code & ec, std::size_t bytes_transferred);
     void on_finish(const boost::system::error_code & ec);

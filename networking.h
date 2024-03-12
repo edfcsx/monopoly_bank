@@ -29,6 +29,28 @@ typedef asio::ip::tcp::acceptor tcp_acceptor;
 // types from basic types
 typedef unsigned int uint;
 
+namespace server {
+    enum actions : unsigned int {
+        unknown = 1,
+        need_authenticate,
+        authenticate_failed,
+        authenticate,
+        authenticate_success,
+        ping,
+        pong,
+        send_profile,
+        transfer,
+        transfer_success,
+        transfer_received,
+        transfer_no_funds,
+        bad_request,
+    };
+
+    enum protocol : unsigned int {
+        raw,
+        websocket
+    };
+}
 
 enum SERVER_CODES: unsigned int
 {

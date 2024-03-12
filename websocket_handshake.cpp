@@ -1,9 +1,8 @@
 #include "websocket_handshake.h"
 
-WebSocketHandshake::WebSocketHandshake(tcp_socket sock, ConnectionManager * manager, HandshakeCallback callback):
+WebSocketHandshake::WebSocketHandshake(tcp_socket sock, handshake_callback c):
     m_sock(sock),
-    m_manager(manager),
-    m_callback(callback)
+    m_callback(c)
 {
     // read handshake request status line
     asio::async_read_until(*m_sock, m_request_buf, "\r\n\r\n",
@@ -19,7 +18,7 @@ void WebSocketHandshake::on_finish(const boost::system::error_code & ec)
         std::cout << "[Server] failed to read websocket request: " << ec.message() << std::endl;
         m_sock->close();
     } else {
-        m_callback(m_sock, m_manager);
+        m_callback(m_sock);
     }
 
     delete this;
