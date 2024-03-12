@@ -73,8 +73,9 @@ private:
     tcp_socket m_sock;
     connection::message m_message;
     connection::on_close_callback m_close_callback;
-    vector<nlohmann::json> m_messagesOut;
     bool m_playing = false;
+    vector<unsigned char> m_send_frame;
+    vector<nlohmann::json> m_messagesOut;
 public:
     void DispatchMessages();
     void Send(nlohmann::json message);

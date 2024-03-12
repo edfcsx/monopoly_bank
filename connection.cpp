@@ -137,7 +137,7 @@ void Connection::read_websocket_message_content()
 
          std::string message(data.begin(), data.end());
          cout << "[Server] received message: " << message << endl;
-//         close_websocket();
+//         close_websocket(connection::status::NORMAL_CLOSURE, "closing connection");
          send_data("Hello, client!", connection::opcode::TEXT);
          listen_websocket_messages();
      });
@@ -204,38 +204,36 @@ void Connection::Send(nlohmann::json message) {
 }
 
 void Connection::send_data(const std::string & data, connection::opcode c, connection::status s, connection::success_send_callback on_success) {
-    auto frame = new std::vector<unsigned char>();
+    m_send_frame.clear();
 
     // first byte: FIN + opcode
-    frame->push_back(0x80 | c);  // FIN = 1 (mensagem final)
+    m_send_frame.push_back(0x80 | c);  // FIN = 1 (mensagem final)
 
     // second byte: MASK + length
     if (data.size() <= 125) {
-        frame->push_back(data.size()); // MASK = 0 (mensagem não mascarada), length <= 125
+        m_send_frame.push_back(data.size()); // MASK = 0 (mensagem não mascarada), length <= 125
     } else if (data.size() <= 65535) {
-        frame->push_back(126); // MASK = 0, length = 126
-        frame->push_back((data.size() >> 8) & 0xFF); // coloca os 8 bits mais significativos
-        frame->push_back(data.size() & 0xFF);    // coloca os 8 bits menos significativos
+        m_send_frame.push_back(126); // MASK = 0, length = 126
+        m_send_frame.push_back((data.size() >> 8) & 0xFF); // coloca os 8 bits mais significativos
+        m_send_frame.push_back(data.size() & 0xFF);    // coloca os 8 bits menos significativos
     } else {
-        frame->push_back(127); // MASK = 0, length => 65535
+        m_send_frame.push_back(127); // MASK = 0, length => 65535
         for (int i = 7; i >= 0; --i) {
-            frame->push_back((data.size() >> (8 * i)) & 0xFF);  // coloca os 8 bits mais significativos
+            m_send_frame.push_back((data.size() >> (8 * i)) & 0xFF);  // coloca os 8 bits mais significativos
         }
     }
 
     if (s != connection::status::DEF_STATUS) {
-        frame->push_back((s >> 8) & 0xFF);
-        frame->push_back(s & 0xFF);
+        m_send_frame.push_back((s >> 8) & 0xFF);
+        m_send_frame.push_back(s & 0xFF);
     }
 
     // append the data
-    frame->insert(frame->end(), data.begin(), data.end());
+    m_send_frame.insert(m_send_frame.end(), data.begin(), data.end());
 
-    // send the frame
-    asio::async_write(*m_sock, asio::buffer(*frame),
-    [on_success, frame](const boost::system::error_code & ec, std::size_t bytes_transferred) {
-        delete frame;
-
+    // send the m_send_frame
+    asio::async_write(*m_sock, asio::buffer(m_send_frame),
+    [on_success](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to write message: " << ec.message() << endl;
         }
