@@ -23,8 +23,6 @@ private:
     std::mutex m_playersMutex;
 public:
     void accept_connection(tcp_socket socket, ConnProtocol p);
-private:
-    static void RejectConnection(ptr_socket sock, SERVER_CODES status);
 };
 
 #endif // CONNECTION_MANAGER_H_
