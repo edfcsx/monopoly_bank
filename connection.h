@@ -62,7 +62,8 @@ namespace connection {
     using on_close_callback = std::function<void(std::string ip, bool playing)>;
 };
 
-class Connection {
+class Connection: std::enable_shared_from_this<Connection>
+{
 public:
     Connection(tcp_socket socket, ConnProtocol p, connection::on_close_callback on_close = nullptr);
     ~Connection();

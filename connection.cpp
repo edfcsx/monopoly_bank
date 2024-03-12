@@ -36,6 +36,14 @@ void Connection::close_connection()
     if (m_sock->is_open())
     {
         boost::system::error_code ec;
+
+        // cancel async operations
+        try {
+            m_sock->cancel(ec);
+        } catch (std::exception & e) {
+            cout << "[Server] failed to cancel async operations: " << e.what() << endl;
+        }
+
         m_sock->shutdown(asio::ip::tcp::socket::shutdown_both, ec);
         m_sock->close(ec);
     }
@@ -52,7 +60,6 @@ void Connection::listen_websocket_messages()
      [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to read request: " << ec.message() << endl;
-            listen_websocket_messages();
             return;
         }
 
@@ -82,7 +89,7 @@ void Connection::listen_websocket_messages()
             asio::async_read(*m_sock, m_message.buffer, asio::transfer_exactly(m_message.additional_bytes),
              [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
                 if (ec.value() != 0) {
-                    listen_websocket_messages();
+                    cout << "[Server] failed to read request: " << ec.message() << endl;
                     return;
                 }
 
@@ -120,7 +127,7 @@ void Connection::read_websocket_message_content()
     asio::async_read(*m_sock, m_message.buffer, asio::transfer_exactly(MSG_MASK_SIZE + m_message.length),
      [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
          if (ec.value() != 0) {
-             listen_websocket_messages();
+             cout << "[Server] failed to read request: " << ec.message() << endl;
              return;
          }
 
@@ -149,7 +156,7 @@ void Connection::listen_raw_messages() {
     asio::async_read_until(*m_sock, m_message.buffer, "\n",
      [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
-            listen_raw_messages();
+            cout << "[Server] failed to read request: " << ec.message() << endl;
             return;
         }
 
@@ -236,6 +243,7 @@ void Connection::send_data(const std::string & data, connection::opcode c, conne
     [on_success](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to write message: " << ec.message() << endl;
+            return;
         }
 
         if (on_success != nullptr)

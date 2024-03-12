@@ -16,11 +16,11 @@ public:
     ~ConnectionManager();
 
 private:
-    std::unordered_map<std::string, std::unique_ptr<Connection>> m_connections;
+    std::unordered_map<std::string, std::shared_ptr<Connection>> m_connections;
     std::mutex m_connections_lock;
 
     std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
-    std::mutex m_playersMutex;
+    std::mutex m_players_lock;
 public:
     void accept_connection(tcp_socket socket, ConnProtocol p);
 };
