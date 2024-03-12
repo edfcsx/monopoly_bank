@@ -59,13 +59,12 @@ namespace connection {
     };
 
     using success_send_callback = std::function<void()>;
-    using on_close_callback = std::function<void(std::string ip, bool playing)>;
 };
 
 class Connection: std::enable_shared_from_this<Connection>
 {
 public:
-    Connection(tcp_socket socket, ConnProtocol p, connection::on_close_callback on_close = nullptr);
+    Connection(tcp_socket socket, ConnProtocol p);
     ~Connection();
 private:
     std::string m_ip;
@@ -73,7 +72,6 @@ private:
     ConnProtocol m_protocol;
     tcp_socket m_sock;
     connection::message m_message;
-    connection::on_close_callback m_close_callback;
     bool m_playing = false;
     vector<unsigned char> m_send_frame;
     vector<nlohmann::json> m_messagesOut;

@@ -7,11 +7,10 @@ using std::cout;
 using std::endl;
 using std::string;
 
-Connection::Connection(tcp_socket socket, ConnProtocol p, connection::on_close_callback on_close) :
+Connection::Connection(tcp_socket socket, ConnProtocol p) :
     m_sock(std::move(socket)),
     m_isOpen(true),
-    m_protocol(p),
-    m_close_callback(std::move(on_close))
+    m_protocol(p)
 {
     cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
 
@@ -47,9 +46,6 @@ void Connection::close_connection()
         m_sock->shutdown(asio::ip::tcp::socket::shutdown_both, ec);
         m_sock->close(ec);
     }
-
-    if (m_close_callback != nullptr)
-        m_close_callback(m_ip, m_playing);
 }
 
 void Connection::listen_websocket_messages()
