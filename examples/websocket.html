@@ -10,12 +10,17 @@
     <button id="authenticate">Send Authenticate JSON</button>
 <script>
 var ws;
+var start_time;
 
 window.onload = function() {
     ws = new WebSocket("ws://localhost:4444");
 
     ws.onmessage = function(evt) {
+        var end_time = performance.now();
+        var duration = end_time - start_time;
+
         console.log(evt.data);
+        console.log('received message in ' + duration + 'ms');
     };
 
     ws.onopen = function(evt) {
@@ -23,10 +28,12 @@ window.onload = function() {
     }
 
     document.getElementById('sendHello').addEventListener('click', function() {
+        start_time = performance.now();
         ws.send('Hello');
     });
 
     document.getElementById('authenticate').addEventListener('click', function() {
+        start_time = performance.now();
         ws.send(JSON.stringify({ type: 'authenticate', data: { username: 'user', password: 'pass' }}));
     });
 }

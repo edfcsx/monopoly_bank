@@ -19,14 +19,16 @@ Connection::Connection(tcp_socket socket, ConnProtocol p) :
     } else if (m_protocol == ConnProtocol::WEBSOCKET) {
         listen_websocket_messages();
     }
+
+    m_ip = m_sock->remote_endpoint().address().to_string();
 }
 
 Connection::~Connection()
 {
-    Close();
+    close_connection();
 }
 
-void Connection::Close()
+void Connection::close_connection()
 {
     m_isOpen = false;
 
@@ -136,36 +138,41 @@ void Connection::read_websocket_message_content()
 
          std::string message(data.begin(), data.end());
          cout << "[Server] received message: " << message << endl;
-         send_data("Hello, client!", connection::opcode::TEXT);
+//         close_websocket();
+         send_data("Hello, client!", connection::opcode::TEXT, nullptr);
          listen_websocket_messages();
      });
 }
 
 void Connection::listen_raw_messages() {
-    asio::async_read_until(*m_sock, m_request, "\n",
+    m_message.clear_buffer();
+
+    asio::async_read_until(*m_sock, m_message.buffer, "\n",
      [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to read request: " << ec.message() << endl;
             return;
         }
 
-        std::istream stream(&m_request);
-        std::string message;
-        std::getline(stream, message);
+        m_message.type = connection::opcode::RAW;
+        m_message.length = bytes_transferred;
 
-        cout << "[Server] received message: " << message << endl;
+        std::istream stream(&m_message.buffer);
+        std::string data;
+        std::getline(stream, data);
 
-        try {
-            auto j = nlohmann::json::parse(message);
+        cout << "[Server] received message: " << data << endl;
 
-            if (j.contains("code")) {
+//        try {
+//            auto j = nlohmann::json::parse(message);
+//
+//            if (j.contains("code")) {
+//
+//            }
+//        } catch (nlohmann::json::parse_error & e) {
+//            cout << "[Server] failed to parse message: " << e.what() << endl;
+//        }
 
-            }
-        } catch (nlohmann::json::parse_error & e) {
-            cout << "[Server] failed to parse message: " << e.what() << endl;
-        }
-
-        m_request.consume(m_request.size());
         listen_raw_messages();
     });
 }
@@ -197,36 +204,59 @@ void Connection::Send(nlohmann::json message) {
     m_messagesOut.push_back(message);
 }
 
-void Connection::send_data(const std::string & data, connection::opcode c) {
-    std::vector<unsigned char> frame;
+void Connection::send_data(const std::string & data, connection::opcode c, connection::success_send_callback on_success) {
+    auto frame = new std::vector<unsigned char>();
 
     // first byte: FIN + opcode
-    frame.push_back(0x80 | c);  // FIN = 1 (mensagem final)
+    frame->push_back(0x80 | c);  // FIN = 1 (mensagem final)
 
     // second byte: MASK + length
     if (data.size() <= 125) {
-        frame.push_back(data.size()); // MASK = 0 (mensagem não mascarada), length <= 125
+        frame->push_back(data.size()); // MASK = 0 (mensagem não mascarada), length <= 125
     } else if (data.size() <= 65535) {
-        frame.push_back(126); // MASK = 0, length = 126
-        frame.push_back((data.size() >> 8) & 0xFF); // coloca os 8 bits mais significativos
-        frame.push_back(data.size() & 0xFF);    // coloca os 8 bits menos significativos
+        frame->push_back(126); // MASK = 0, length = 126
+        frame->push_back((data.size() >> 8) & 0xFF); // coloca os 8 bits mais significativos
+        frame->push_back(data.size() & 0xFF);    // coloca os 8 bits menos significativos
     } else {
-        frame.push_back(127); // MASK = 0, length => 65535
+        frame->push_back(127); // MASK = 0, length => 65535
         for (int i = 7; i >= 0; --i) {
-            frame.push_back((data.size() >> (8 * i)) & 0xFF);  // coloca os 8 bits mais significativos
+            frame->push_back((data.size() >> (8 * i)) & 0xFF);  // coloca os 8 bits mais significativos
         }
     }
 
     // append the data
-    frame.insert(frame.end(), data.begin(), data.end());
+    frame->insert(frame->end(), data.begin(), data.end());
 
     // send the frame
-    asio::async_write(*m_sock, asio::buffer(frame),
-    [frame](const boost::system::error_code & ec, std::size_t bytes_transferred) {
+    asio::async_write(*m_sock, asio::buffer(*frame),
+    [on_success, frame](const boost::system::error_code & ec, std::size_t bytes_transferred) {
+        delete frame;
+
+        if (ec.value() != 0) {
+            cout << "[Server] failed to write message: " << ec.message() << endl;
+        }
+
+        if (on_success != nullptr)
+            on_success();
+
+
+        std::cout << "[Server] sent message: " << bytes_transferred << " bytes" << std::endl;
+    });
+}
+
+void Connection::send_data(const std::string & data) {
+    asio::async_write(*m_sock, asio::buffer(data),
+    [data](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to write message: " << ec.message() << endl;
         }
 
         std::cout << "[Server] sent message: " << bytes_transferred << " bytes" << std::endl;
+    });
+}
+
+void Connection::close_websocket() {
+    send_data("", connection::opcode::CLOSE, [this]() {
+        close_connection();
     });
 }

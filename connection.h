@@ -43,6 +43,8 @@ namespace connection {
             unique = false;
         }
     };
+
+    using success_send_callback = std::function<void()>;
 };
 
 class Connection {
@@ -50,16 +52,14 @@ public:
     Connection(tcp_socket socket, ConnProtocol p);
     ~Connection();
 
-    void Close();
+    void close_connection();
     [[nodiscard]] bool is_open() const;
 private:
+    std::string m_ip;
     bool m_isOpen;
     ConnProtocol m_protocol;
     tcp_socket m_sock;
-    asio::streambuf m_request;
-    std::string m_response;
     connection::message m_message;
-
     vector<nlohmann::json> m_messagesOut;
 public:
     void DispatchMessages();
@@ -68,7 +68,9 @@ private:
     void listen_raw_messages();
     void listen_websocket_messages();
     void read_websocket_message_content();
-    void send_data(const std::string & data, connection::opcode c);
+    void send_data(const std::string & data);
+    void send_data(const std::string & data, connection::opcode c, connection::success_send_callback on_success);
+    void close_websocket();
 };
 
 #endif // CONNECTION_H_
