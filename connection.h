@@ -22,6 +22,20 @@ namespace connection {
         PONG = 0xA,
         RAW = 0x99
     };
+
+    enum status: uint16_t {
+        NORMAL_CLOSURE = 1000,
+        GOING_AWAY = 1001,
+        PROTOCOL_ERROR = 1002,
+        UNSUPPORTED_DATA = 1003,
+        NO_STATUS_RCVD = 1005,
+        ABNORMAL_CLOSURE = 1006,
+        INVALID_FRAME_PAYLOAD_DATA = 1007,
+        POLICY_VIOLATION = 1008,
+        MESSAGE_TOO_BIG = 1009,
+        MANDATORY_EXT = 1010,
+        DEF_STATUS = 9999
+    };
 };
 
 namespace connection {
@@ -45,32 +59,44 @@ namespace connection {
     };
 
     using success_send_callback = std::function<void()>;
+    using on_close_callback = std::function<void(std::string ip, bool playing)>;
 };
 
 class Connection {
 public:
-    Connection(tcp_socket socket, ConnProtocol p);
+    Connection(tcp_socket socket, ConnProtocol p, connection::on_close_callback on_close = nullptr);
     ~Connection();
-
-    void close_connection();
-    [[nodiscard]] bool is_open() const;
 private:
     std::string m_ip;
     bool m_isOpen;
     ConnProtocol m_protocol;
     tcp_socket m_sock;
     connection::message m_message;
+    connection::on_close_callback m_close_callback;
     vector<nlohmann::json> m_messagesOut;
+    bool m_playing = false;
 public:
     void DispatchMessages();
     void Send(nlohmann::json message);
+    void close_connection();
+    [[nodiscard]] bool is_open() const;
 private:
     void listen_raw_messages();
     void listen_websocket_messages();
     void read_websocket_message_content();
     void send_data(const std::string & data);
-    void send_data(const std::string & data, connection::opcode c, connection::success_send_callback on_success);
-    void close_websocket();
+
+    void send_data(
+        const std::string & data,
+        connection::opcode c,
+        connection::status s = connection::status::DEF_STATUS,
+        connection::success_send_callback on_success = nullptr);
+
+    void close_websocket(
+        connection::status s = connection::status::NORMAL_CLOSURE,
+        const std::string & reason = "");
+
+    void set_playing(bool p);
 };
 
 #endif // CONNECTION_H_

@@ -6,10 +6,11 @@ using std::cout;
 using std::endl;
 using std::string;
 
-Connection::Connection(tcp_socket socket, ConnProtocol p) :
+Connection::Connection(tcp_socket socket, ConnProtocol p, connection::on_close_callback on_close) :
     m_sock(std::move(socket)),
     m_isOpen(true),
-    m_protocol(p)
+    m_protocol(p),
+    m_close_callback(on_close)
 {
     cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
     m_messagesOut.push_back(nlohmann::json{{ "code", SERVER_CODES::AUTHENTICATE_SUCCESS }});
@@ -38,6 +39,9 @@ void Connection::close_connection()
         m_sock->shutdown(asio::ip::tcp::socket::shutdown_both, ec);
         m_sock->close(ec);
     }
+
+    if (m_close_callback != nullptr)
+        m_close_callback(m_ip, m_playing);
 }
 
 void Connection::listen_websocket_messages()
@@ -48,6 +52,7 @@ void Connection::listen_websocket_messages()
      [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to read request: " << ec.message() << endl;
+            listen_websocket_messages();
             return;
         }
 
@@ -56,10 +61,7 @@ void Connection::listen_websocket_messages()
         stream.read((char *)&first_bytes[0], 2);
 
         if (first_bytes[0] < 128) {
-            cout << "[Server] close connection if unmasked message from client";
-            // @todo: implements close connection handshake
-            // send_close(1002, "unmasked message from client");
-            m_sock->close();
+            close_websocket(connection::status::PROTOCOL_ERROR, "unmasked message from client");
             return;
         }
 
@@ -67,9 +69,7 @@ void Connection::listen_websocket_messages()
         m_message.unique = (first_bytes[0] & 0x80) == 0x80;
 
         if (m_message.type != connection::opcode::TEXT) {
-            cout << "[Server] close connection if message type is not text";
-            // @todo: implements close connection handshake
-            // send_close(1003, "message type is not text");
+            close_websocket(connection::status::UNSUPPORTED_DATA, "message type is not text");
             return;
         }
 
@@ -82,7 +82,7 @@ void Connection::listen_websocket_messages()
             asio::async_read(*m_sock, m_message.buffer, asio::transfer_exactly(m_message.additional_bytes),
              [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
                 if (ec.value() != 0) {
-                    cout << "[Server] failed to read request: " << ec.message() << endl;
+                    listen_websocket_messages();
                     return;
                 }
 
@@ -113,15 +113,14 @@ void Connection::read_websocket_message_content()
     m_message.clear_buffer();
 
     if (m_message.length > MAX_MESSAGE_SIZE) {
-        cout << "[Server] close connection if message length is too big";
-        // @TODO: make close connection
+        close_websocket(connection::status::MESSAGE_TOO_BIG, "message length is too big");
         return;
     }
 
     asio::async_read(*m_sock, m_message.buffer, asio::transfer_exactly(MSG_MASK_SIZE + m_message.length),
      [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
          if (ec.value() != 0) {
-             cout << "[Server] failed to read request: " << ec.message() << endl;
+             listen_websocket_messages();
              return;
          }
 
@@ -139,7 +138,7 @@ void Connection::read_websocket_message_content()
          std::string message(data.begin(), data.end());
          cout << "[Server] received message: " << message << endl;
 //         close_websocket();
-         send_data("Hello, client!", connection::opcode::TEXT, nullptr);
+         send_data("Hello, client!", connection::opcode::TEXT);
          listen_websocket_messages();
      });
 }
@@ -150,7 +149,7 @@ void Connection::listen_raw_messages() {
     asio::async_read_until(*m_sock, m_message.buffer, "\n",
      [this](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
-            cout << "[Server] failed to read request: " << ec.message() << endl;
+            listen_raw_messages();
             return;
         }
 
@@ -204,7 +203,7 @@ void Connection::Send(nlohmann::json message) {
     m_messagesOut.push_back(message);
 }
 
-void Connection::send_data(const std::string & data, connection::opcode c, connection::success_send_callback on_success) {
+void Connection::send_data(const std::string & data, connection::opcode c, connection::status s, connection::success_send_callback on_success) {
     auto frame = new std::vector<unsigned char>();
 
     // first byte: FIN + opcode
@@ -224,6 +223,11 @@ void Connection::send_data(const std::string & data, connection::opcode c, conne
         }
     }
 
+    if (s != connection::status::DEF_STATUS) {
+        frame->push_back((s >> 8) & 0xFF);
+        frame->push_back(s & 0xFF);
+    }
+
     // append the data
     frame->insert(frame->end(), data.begin(), data.end());
 
@@ -239,7 +243,6 @@ void Connection::send_data(const std::string & data, connection::opcode c, conne
         if (on_success != nullptr)
             on_success();
 
-
         std::cout << "[Server] sent message: " << bytes_transferred << " bytes" << std::endl;
     });
 }
@@ -249,14 +252,19 @@ void Connection::send_data(const std::string & data) {
     [data](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to write message: " << ec.message() << endl;
+            return;
         }
 
         std::cout << "[Server] sent message: " << bytes_transferred << " bytes" << std::endl;
     });
 }
 
-void Connection::close_websocket() {
-    send_data("", connection::opcode::CLOSE, [this]() {
+void Connection::close_websocket(connection::status s, const std::string & reason) {
+    send_data(reason, connection::opcode::CLOSE, s, [this]() {
         close_connection();
     });
+}
+
+void Connection::set_playing(bool p) {
+    m_playing = p;
 }
