@@ -8,6 +8,8 @@
 </body>
     <button id="sendHello">Send Hello</button>
     <button id="authenticate">Send Authenticate JSON</button>
+    <button id="ping">Send Ping</button>
+</body>
 <script>
 var ws;
 var start_time;
@@ -32,9 +34,14 @@ window.onload = function() {
         ws.send('Hello');
     });
 
+    document.getElementById('ping').addEventListener('click', function() {
+        start_time = performance.now();
+        ws.send(JSON.stringify({ code: 6 }));
+    });
+
     document.getElementById('authenticate').addEventListener('click', function() {
         start_time = performance.now();
-        ws.send(JSON.stringify({ type: 'authenticate', data: { username: 'user', password: 'pass' }}));
+        ws.send(JSON.stringify({ code: 5, username: "edfcsx", password: "123" }));
     });
 }
 

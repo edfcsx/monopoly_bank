@@ -8,15 +8,15 @@
 Server::Server() :
     m_ios(asio::io_service {}),
     m_isStopped(false),
-    m_commandsMap(std::unordered_map<SERVER_CODES, std::unique_ptr<Icommand>>()),
+    m_commands(std::unordered_map<server::actions, std::unique_ptr<Icommand>>()),
     m_acceptors(std::unordered_map<ConnProtocol, std::unique_ptr<tcp_acceptor>>())
 {
     m_acceptors[ConnProtocol::RAW] = std::make_unique<tcp_acceptor>(m_ios,tcp_endpoint(asio::ip::address_v4::any(), 3333));
     m_acceptors[ConnProtocol::WEBSOCKET] = std::make_unique<tcp_acceptor >(m_ios, tcp_endpoint(asio::ip::address_v4::any(), 4444));
 
     m_work = std::make_unique<asio::io_service::work>(m_ios);
-    m_commandsMap[SERVER_CODES::PING] = std::make_unique<PingCommand>();
-    m_commandsMap[SERVER_CODES::TRANSFER] = std::make_unique<TransferCommand>();
+
+    m_commands[server::actions::ping] = std::make_unique<PingCommand>();
 }
 
 Server::~Server()
@@ -90,6 +90,27 @@ void Server::listen(ConnProtocol protocol)
         else
             Stop();
     });
+}
+
+void Server::process_io_messages()
+{
+    std::lock_guard<std::mutex> lock(m_connections.m_connections_lock);
+
+    for (auto & [ip, conn] : m_connections.m_connections) {
+        if (conn->is_open()) {
+            conn->send_out_messages();
+
+            for (auto & msg : conn->get_in_messages()) {
+                if (m_commands.find(msg["code"]) != m_commands.end()) {
+                    m_commands[msg["code"]]->execute(msg);
+                } else {
+                    std::cout << "[Server] unknown message code: " << msg["code"] << std::endl;
+                }
+            }
+
+            conn->clear_in_messages();
+        }
+    }
 }
 
 //void Server::RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code)

@@ -4,21 +4,24 @@
 #include "icommand.h"
 #include "player.h"
 #include "json.hpp"
+#include "server.h"
 
 class PingCommand : public Icommand
 {
 public:
-    void execute(std::shared_ptr<std::unordered_map<std::string, Player *>> m_players, nlohmann::json data) override {
-        if (data.contains("username")) {
-            std::string username = data["username"];
+    void execute(nlohmann::json data) override {
+        auto & server = Server::getInstance();
 
-            if (m_players->find(username) != m_players->end()) {
-                if ((*m_players)[username]->m_connection && (*m_players)[username]->m_connection->is_open()) {
-                    (*m_players)[username]->m_connection->Send(nlohmann::json{
-                        {"code", SERVER_CODES::PING_RESPONSE},
-                        {"message", "Pong!"}
-                    });
-                }
+        if (data["is_player"]) {
+
+        } else {
+            auto connection = server.m_connections.get_connection(data["ip"]);
+
+            if (connection && connection->is_open()) {
+                connection->push_out_message(nlohmann::json{
+                    { "code", server::actions::pong },
+                    { "message", "Pong!" }
+                });
             }
         }
     };

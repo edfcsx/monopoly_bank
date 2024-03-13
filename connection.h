@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "json.hpp"
 #include "networking.h"
+//#include "server.h"
 
 using std::vector;
 
@@ -74,12 +75,19 @@ private:
     connection::message m_message;
     bool m_playing = false;
     vector<unsigned char> m_send_frame;
-    vector<nlohmann::json> m_messagesOut;
+    std::mutex m_messages_in_lock;
+    vector<nlohmann::json> m_messages_in;
+    std::mutex m_messages_out_lock;
+    vector<nlohmann::json> m_messages_out;
 public:
-    void DispatchMessages();
-    void Send(nlohmann::json message);
     void close_connection();
     [[nodiscard]] bool is_open() const;
+    void push_in_message(const std::string & data);
+    void push_out_message(nlohmann::json message);
+
+    void send_out_messages();
+    std::vector<nlohmann::json> get_in_messages();
+    void clear_in_messages();
 private:
     void listen_raw_messages();
     void listen_websocket_messages();

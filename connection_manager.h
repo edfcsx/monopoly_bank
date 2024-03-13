@@ -15,7 +15,7 @@ public:
     ConnectionManager();
     ~ConnectionManager();
 
-private:
+public:
     std::unordered_map<std::string, std::shared_ptr<Connection>> m_connections;
     std::mutex m_connections_lock;
 
@@ -23,6 +23,7 @@ private:
     std::mutex m_players_lock;
 public:
     void accept_connection(tcp_socket socket, ConnProtocol p);
+    std::shared_ptr<Connection> get_connection(const std::string & ip);
 };
 
 #endif // CONNECTION_MANAGER_H_

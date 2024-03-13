@@ -10,7 +10,7 @@
 class Icommand {
 public:
     virtual ~Icommand() = default;
-    virtual void execute(std::shared_ptr<std::unordered_map<std::string, Player *>> m_players, nlohmann::json data) = 0;
+    virtual void execute(nlohmann::json data) = 0;
 };
 
 #endif // ICOMMAND_H_

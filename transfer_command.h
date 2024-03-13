@@ -42,7 +42,7 @@ struct TransferData {
 class TransferCommand : public Icommand
 {
 public:
-    void execute(std::shared_ptr<std::unordered_map<std::string, Player *>> m_players, nlohmann::json data) override {
+    void execute(nlohmann::json data) override {
         TransferData transfer = TransferData::from_json(data);
         Server & server = Server::getInstance();
 

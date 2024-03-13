@@ -29,21 +29,20 @@ private:
     Server(Server const&);
     void operator=(Server const&);
 public:
-    std::mutex m_playersMutex;
-    std::mutex m_messageInMutex;
+    ConnectionManager m_connections;
 private:
     asio::io_service m_ios;
     std::unique_ptr<asio::io_service::work> m_work;
     std::vector<std::unique_ptr<std::thread>> m_thread_pool;
-    std::unordered_map<ConnProtocol, std::unique_ptr<tcp_acceptor>> m_acceptors;
     std::atomic<bool> m_isStopped;
-    ConnectionManager m_connections;
-
+    std::unordered_map<ConnProtocol, std::unique_ptr<tcp_acceptor>> m_acceptors;
+    std::unordered_map<server::actions, std::unique_ptr<Icommand>> m_commands;
     std::list<NetworkingMessage> m_messagesIn;
-    std::unordered_map<SERVER_CODES, std::unique_ptr<Icommand>> m_commandsMap;
 public:
     void Start(uint thread_pool_size);
     void Stop();
+    void process_io_messages();
+
 //    std::shared_ptr<std::unordered_map<std::string, Player *>> GetPlayers();
 //    void PushMessage(NetworkingMessage message);
 //    void ProcessMessages();

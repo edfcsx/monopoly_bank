@@ -35,8 +35,8 @@ string Player::GetPassword() const {
 }
 
 void Player::DispatchMessages() {
-    if (m_connection && m_connection->is_open())
-        m_connection->DispatchMessages();
+//    if (m_connection && m_connection->is_open())
+//        m_connection->DispatchMessages();
 }
 
 void Player::SendProfile() {
@@ -48,7 +48,7 @@ void Player::SendProfile() {
             {"money", m_money}
         };
 
-        m_connection->Send(j);
+//        m_connection->Send(j);
     }
 }
 

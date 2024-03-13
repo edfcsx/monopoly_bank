@@ -43,3 +43,11 @@ void ConnectionManager::accept_connection(tcp_socket socket, ConnProtocol p)
         });
     }
 }
+
+std::shared_ptr<Connection> ConnectionManager::get_connection(const std::string & ip)
+{
+    if (m_connections.find(ip) != m_connections.end())
+        return m_connections.at(ip);
+    else
+        return nullptr;
+}

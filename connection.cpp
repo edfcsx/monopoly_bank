@@ -138,10 +138,7 @@ void Connection::read_websocket_message_content()
              data[i] ^= mask[i % MSG_MASK_SIZE];
          }
 
-         std::string message(data.begin(), data.end());
-         cout << "[Server] received message: " << message << endl;
-//         close_websocket(connection::status::NORMAL_CLOSURE, "closing connection");
-         send_data("Hello, client!", connection::opcode::TEXT);
+         push_in_message(std::string(data.begin(), data.end()));
          listen_websocket_messages();
      });
 }
@@ -163,47 +160,13 @@ void Connection::listen_raw_messages() {
         std::string data;
         std::getline(stream, data);
 
-        cout << "[Server] received message: " << data << endl;
-
-//        try {
-//            auto j = nlohmann::json::parse(message);
-//
-//            if (j.contains("code")) {
-//
-//            }
-//        } catch (nlohmann::json::parse_error & e) {
-//            cout << "[Server] failed to parse message: " << e.what() << endl;
-//        }
-
+         push_in_message(data);
         listen_raw_messages();
     });
 }
 
 bool Connection::is_open() const {
     return m_sock && m_isOpen;
-}
-
-void Connection::DispatchMessages() {
-    if (!m_messagesOut.empty()) {
-        for (auto & message : m_messagesOut) {
-            auto * msg = new string(message.dump() + "\n");
-
-            asio::async_write(*m_sock, asio::buffer(*msg),
-              [msg](const boost::system::error_code & ec, std::size_t bytes_transferred) {
-                  if (ec.value() != 0) {
-                      cout << "[Server] failed to write message: " << ec.message() << endl;
-                  }
-
-                  delete msg;
-              });
-        }
-
-        m_messagesOut.clear();
-    }
-}
-
-void Connection::Send(nlohmann::json message) {
-    m_messagesOut.push_back(message);
 }
 
 void Connection::send_data(const std::string & data, connection::opcode c, connection::status s, connection::success_send_callback on_success) {
@@ -261,12 +224,60 @@ void Connection::send_data(const std::string & data) {
     });
 }
 
-void Connection::close_websocket(connection::status s, const std::string & reason) {
+void Connection::close_websocket(connection::status s, const std::string & reason)
+{
     send_data(reason, connection::opcode::CLOSE, s, [this]() {
         close_connection();
     });
 }
 
-void Connection::set_playing(bool p) {
+void Connection::set_playing(bool p)
+{
     m_playing = p;
+}
+
+void Connection::push_in_message(const std::string & data)
+{
+    std::lock_guard<std::mutex> lock(m_messages_in_lock);
+
+    try {
+        auto json = nlohmann::json::parse(data);
+
+        if (json.contains("code")) {
+            json.push_back({ "ip", m_ip });
+            json.push_back({ "is_player", m_playing });
+            m_messages_in.push_back(json);
+        }
+    } catch (nlohmann::json::parse_error & e) {
+        cout << "[Server] failed to parse message: " << e.what() << endl;
+    }
+}
+
+void Connection::push_out_message(nlohmann::json message)
+{
+    std::lock_guard<std::mutex> lock(m_messages_out_lock);
+    m_messages_out.push_back(message);
+}
+
+void Connection::send_out_messages() {
+    std::lock_guard<std::mutex> lock(m_messages_out_lock);
+
+    for (auto & message : m_messages_out) {
+        if (m_protocol == ConnProtocol::WEBSOCKET)
+            send_data(message.dump(), connection::opcode::TEXT);
+        else if (m_protocol == ConnProtocol::RAW)
+            send_data(message.dump() + "\n");
+    }
+
+    m_messages_out.clear();
+}
+
+std::vector<nlohmann::json> Connection::get_in_messages() {
+    std::lock_guard<std::mutex> lock(m_messages_in_lock);
+    return m_messages_in;
+}
+
+void Connection::clear_in_messages() {
+    std::lock_guard<std::mutex> lock(m_messages_in_lock);
+    m_messages_in.clear();
 }
