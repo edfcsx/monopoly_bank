@@ -35,15 +35,14 @@ private:
     std::unique_ptr<asio::io_service::work> m_work;
     std::vector<std::unique_ptr<std::thread>> m_thread_pool;
     std::atomic<bool> m_isStopped;
-    std::unordered_map<ConnProtocol, std::unique_ptr<tcp_acceptor>> m_acceptors;
+    std::unordered_map<server::protocol, std::unique_ptr<tcp_acceptor>> m_acceptors;
     std::unordered_map<server::actions, std::unique_ptr<Icommand>> m_commands;
-    std::list<NetworkingMessage> m_messagesIn;
 public:
     void Start(uint thread_pool_size);
     void Stop();
     void process_io_messages();
 private:
-    void listen(ConnProtocol protocol);
+    void listen(server::protocol protocol);
 };
 
 #endif // SERVER_H_

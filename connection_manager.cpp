@@ -10,7 +10,7 @@ ConnectionManager::~ConnectionManager()
     m_connections.clear();
 }
 
-void ConnectionManager::accept_connection(tcp_socket socket, ConnProtocol p)
+void ConnectionManager::accept_connection(tcp_socket socket, server::protocol p)
 {
     std::string ip = socket->remote_endpoint().address().to_string();
     std::unique_lock<std::mutex> check_lock(m_connections_lock);
@@ -26,20 +26,20 @@ void ConnectionManager::accept_connection(tcp_socket socket, ConnProtocol p)
 
     check_lock.unlock();
 
-    if (p == ConnProtocol::RAW) {
+    if (p == server::protocol::raw) {
         std::lock_guard<std::mutex> lock(m_connections_lock);
 
         m_connections.insert({
             socket->remote_endpoint().address().to_string(),
             std::make_shared<Connection>(socket, p)
         });
-    } else if (p == ConnProtocol::WEBSOCKET) {
+    } else if (p == server::protocol::websocket) {
         auto * handshake = new WebSocketHandshake(socket, this, [](ptr_socket s, ConnectionManager * self) {
             std::lock_guard<std::mutex> lock(self->m_connections_lock);
 
             self->m_connections.insert({
                 s->remote_endpoint().address().to_string(),
-                std::make_shared<Connection>(s, ConnProtocol::WEBSOCKET)
+                std::make_shared<Connection>(s, server::protocol::websocket)
             });
         });
     }

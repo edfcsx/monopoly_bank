@@ -7,16 +7,16 @@ using std::cout;
 using std::endl;
 using std::string;
 
-Connection::Connection(tcp_socket socket, ConnProtocol p) :
+Connection::Connection(tcp_socket socket, server::protocol p) :
     m_sock(std::move(socket)),
     m_isOpen(true),
     m_protocol(p)
 {
     cout << "[Server] new connection on ip: " << m_sock->remote_endpoint().address().to_string() << endl;
 
-    if (m_protocol == ConnProtocol::RAW) {
+    if (m_protocol == server::protocol::raw) {
         listen_raw_messages();
-    } else if (m_protocol == ConnProtocol::WEBSOCKET) {
+    } else if (m_protocol == server::protocol::websocket) {
         listen_websocket_messages();
     }
 
@@ -263,9 +263,9 @@ void Connection::send_out_messages() {
     std::lock_guard<std::mutex> lock(m_messages_out_lock);
 
     for (auto & message : m_messages_out) {
-        if (m_protocol == ConnProtocol::WEBSOCKET)
+        if (m_protocol == server::protocol::websocket)
             send_data(message.dump(), connection::opcode::TEXT);
-        else if (m_protocol == ConnProtocol::RAW)
+        else if (m_protocol == server::protocol::raw)
             send_data(message.dump() + "\n");
     }
 

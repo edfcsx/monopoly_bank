@@ -65,12 +65,12 @@ namespace connection {
 class Connection: std::enable_shared_from_this<Connection>
 {
 public:
-    Connection(tcp_socket socket, ConnProtocol p);
+    Connection(tcp_socket socket, server::protocol p);
     ~Connection();
 private:
     std::string m_ip;
     bool m_isOpen;
-    ConnProtocol m_protocol;
+    server::protocol m_protocol;
     tcp_socket m_sock;
     connection::message m_message;
     bool m_playing = false;

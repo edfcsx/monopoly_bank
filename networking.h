@@ -52,32 +52,5 @@ namespace server {
     };
 }
 
-enum SERVER_CODES: unsigned int
-{
-    UNKNOWN = 1,
-    LIMIT_REACHED,
-    NEED_AUTHENTICATE,
-    AUTHENTICATE_FAILED,
-    AUTHENTICATE,
-    AUTHENTICATE_SUCCESS,
-    PING,
-    PING_RESPONSE,
-    SEND_PROFILE,
-    TRANSFER,
-    TRANSFER_SUCCESS,
-    TRANSFER_RECEIVED,
-    TRANSFER_NO_FUNDS,
-    BAD_REQUEST,
-};
-
-struct NetworkingMessage {
-    SERVER_CODES code;
-    nlohmann::json data;
-};
-
-enum ConnProtocol: int {
-    RAW,
-    WEBSOCKET
-};
-
 #endif // NETWORKING_H_
+

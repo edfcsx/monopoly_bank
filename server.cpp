@@ -10,10 +10,10 @@ Server::Server() :
     m_ios(asio::io_service {}),
     m_isStopped(false),
     m_commands(std::unordered_map<server::actions, std::unique_ptr<Icommand>>()),
-    m_acceptors(std::unordered_map<ConnProtocol, std::unique_ptr<tcp_acceptor>>())
+    m_acceptors(std::unordered_map<server::protocol, std::unique_ptr<tcp_acceptor>>())
 {
-    m_acceptors[ConnProtocol::RAW] = std::make_unique<tcp_acceptor>(m_ios,tcp_endpoint(asio::ip::address_v4::any(), 3333));
-    m_acceptors[ConnProtocol::WEBSOCKET] = std::make_unique<tcp_acceptor >(m_ios, tcp_endpoint(asio::ip::address_v4::any(), 4444));
+    m_acceptors[server::protocol::raw] = std::make_unique<tcp_acceptor>(m_ios,tcp_endpoint(asio::ip::address_v4::any(), 3333));
+    m_acceptors[server::protocol::websocket] = std::make_unique<tcp_acceptor >(m_ios, tcp_endpoint(asio::ip::address_v4::any(), 4444));
 
     m_work = std::make_unique<asio::io_service::work>(m_ios);
 
@@ -75,7 +75,7 @@ void Server::Stop()
     std::cout << "[Server] server stopped" << std::endl;
 }
 
-void Server::listen(ConnProtocol protocol)
+void Server::listen(server::protocol protocol)
 {
     auto & acceptor = m_acceptors[protocol];
     auto socket = std::make_shared<asio::ip::tcp::socket>(m_ios);

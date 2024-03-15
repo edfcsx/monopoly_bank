@@ -22,7 +22,7 @@ public:
     std::unordered_map<std::string, std::shared_ptr<Player>> m_players;
     std::mutex m_players_lock;
 public:
-    void accept_connection(tcp_socket socket, ConnProtocol p);
+    void accept_connection(tcp_socket socket, server::protocol p);
     std::shared_ptr<Connection> get_connection(const std::string & ip);
     std::shared_ptr<Player> get_player(const std::string & ip);
 };
