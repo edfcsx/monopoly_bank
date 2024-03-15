@@ -1,7 +1,6 @@
 #include <thread>
 #include <iostream>
 #include "server.h"
-#include "player.h"
 
 const uint DEFAULT_THREAD_POOL_SIZE{ 2 };
 

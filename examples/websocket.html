@@ -29,6 +29,10 @@ window.onload = function() {
         console.log('Connected....')
     }
 
+    ws.onclose = function(evt) {
+        console.log('Connection closed....', evt)
+    }
+
     document.getElementById('sendHello').addEventListener('click', function() {
         start_time = performance.now();
         ws.send('Hello');
@@ -41,7 +45,7 @@ window.onload = function() {
 
     document.getElementById('authenticate').addEventListener('click', function() {
         start_time = performance.now();
-        ws.send(JSON.stringify({ code: 5, username: "edfcsx", password: "123" }));
+        ws.send(JSON.stringify({ code: 4, username: "edfcsx", password: "123" }));
     });
 }
 

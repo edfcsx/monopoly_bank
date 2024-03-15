@@ -1,55 +1,17 @@
 #include <iostream>
+#include <utility>
 #include "player.h"
 
-Player::Player(
-        string username,
-        string password,
-        std::shared_ptr<asio::ip::tcp::socket> sock
-) :
+Player::Player(string username,string password) :
     m_username(std::move(username)),
     m_password(std::move(password)),
-    m_connection(std::make_unique<Connection>(sock, ConnProtocol::RAW)),
     m_money(100'000)
-{
-    // send the profile to the client
-    SendProfile();
-}
+{}
 
 Player::~Player() {}
 
-void Player::AttachConnection(std::shared_ptr<asio::ip::tcp::socket> sock) {
-    if (m_connection && m_connection->is_open()) {
-        m_connection->close_connection();
-
-        // wait for the connection to close
-        while (m_connection->is_open()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-    }
-
-    m_connection = std::make_unique<Connection>(sock, ConnProtocol::RAW);
-}
-
 string Player::GetPassword() const {
     return m_password;
-}
-
-void Player::DispatchMessages() {
-//    if (m_connection && m_connection->is_open())
-//        m_connection->DispatchMessages();
-}
-
-void Player::SendProfile() {
-    if (m_connection && m_connection->is_open()) {
-
-        nlohmann::json j = {
-            {"code", SERVER_CODES::SEND_PROFILE},
-            {"username", m_username},
-            {"money", m_money}
-        };
-
-//        m_connection->Send(j);
-    }
 }
 
 void Player::SetMoney(uint money) {

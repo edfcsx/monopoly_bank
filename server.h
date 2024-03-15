@@ -42,18 +42,8 @@ public:
     void Start(uint thread_pool_size);
     void Stop();
     void process_io_messages();
-
-//    std::shared_ptr<std::unordered_map<std::string, Player *>> GetPlayers();
-//    void PushMessage(NetworkingMessage message);
-//    void ProcessMessages();
-//    bool CheckPlayerExistsAndConnected(const std::string & username);
-//    bool CheckPlayerExists(const std::string & username);
-//    bool CheckPlayerConnected(const std::string & username);
 private:
     void listen(ConnProtocol protocol);
-//
-//    static void RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code);
-//    void AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data);
 };
 
 #endif // SERVER_H_

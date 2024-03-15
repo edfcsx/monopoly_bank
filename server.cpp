@@ -4,6 +4,7 @@
 #include "json.hpp"
 #include "ping_command.h"
 #include "transfer_command.h"
+#include "authenticate_command.h"
 
 Server::Server() :
     m_ios(asio::io_service {}),
@@ -17,6 +18,7 @@ Server::Server() :
     m_work = std::make_unique<asio::io_service::work>(m_ios);
 
     m_commands[server::actions::ping] = std::make_unique<PingCommand>();
+    m_commands[server::actions::authenticate] = std::make_unique<AuthenticateCommand>();
 }
 
 Server::~Server()
@@ -94,7 +96,7 @@ void Server::listen(ConnProtocol protocol)
 
 void Server::process_io_messages()
 {
-    std::lock_guard<std::mutex> lock(m_connections.m_connections_lock);
+    std::unique_lock<std::mutex> lock(m_connections.m_connections_lock);
 
     for (auto & [ip, conn] : m_connections.m_connections) {
         if (conn->is_open()) {
@@ -112,89 +114,3 @@ void Server::process_io_messages()
         }
     }
 }
-
-//void Server::RejectConnection(std::shared_ptr<asio::ip::tcp::socket> sock, SERVER_CODES code)
-//{
-//    cout << "[Server] rejecting connection from " <<
-//        sock->remote_endpoint().address().to_string() <<
-//        " code: " << code << '\n';
-//
-//    nlohmann::json j;
-//    j["code"] = std::to_string(static_cast<int>(code));
-//    auto response = new string{j.dump()};
-//
-//    asio::async_write(*sock, asio::buffer(*response), [response, sock](const system::error_code & ec, std::size_t bytes_transferred) {
-//        if (ec.value() != 0)
-//            cout << "[Server] failed to send reject response: " << ec.message() << endl;
-//
-//        sock->close();
-//        delete response;
-//    });
-//}
-
-//void Server::AuthenticatePlayerHandler(std::shared_ptr<asio::ip::tcp::socket> sock, nlohmann::json player_data) {
-//    std::cout << "received: " << player_data.dump() << "\n";
-//    int code = std::atoi(player_data["code"].get<std::string>().c_str());
-//
-//    if (code == SERVER_CODES::AUTHENTICATE) {
-//        std::string username = player_data["username"];
-//        std::string password = player_data["password"];
-//
-//        if (m_players->find(username) != m_players->end()) {
-//            if ((*m_players)[username]->GetPassword() == password){
-//                (*m_players)[username]->AttachConnection(sock);
-//            }
-//            else
-//                Server::RejectConnection(sock, SERVER_CODES::AUTHENTICATE_FAILED);
-//        } else {
-//            auto * p = new Player(username, password, sock);
-//            m_players->insert({ username, p });
-//        }
-//    } else {
-//        Server::RejectConnection(sock, SERVER_CODES::NEED_AUTHENTICATE);
-//    }
-//}
-
-//std::shared_ptr<std::unordered_map<std::string, Player *>> Server::GetPlayers() {
-//    return m_players;
-//}
-
-//void Server::PushMessage(NetworkingMessage message) {
-//    std::lock_guard<std::mutex> lock(m_messageInMutex);
-//    m_messagesIn.push_back(message);
-//
-//    for (auto & msg : m_messagesIn) {
-//        cout << "[Server] message: " << msg.data.dump() << endl;
-//    }
-//}
-
-//void Server::ProcessMessages() {
-//    std::lock_guard<std::mutex> lock(m_messageInMutex);
-//    std::lock_guard<std::mutex> players_lock(m_playersMutex);
-//
-//    for (auto & msg : m_messagesIn) {
-//        if (m_commandsMap.find(msg.code) != m_commandsMap.end()) {
-//            m_commandsMap[msg.code]->execute(m_players, msg.data);
-//        } else {
-//            cout << "[Server] unknown message code: " << static_cast<int>(msg.code) << endl;
-//        }
-//    }
-//
-//    m_messagesIn.clear();
-//}
-
-//bool Server::CheckPlayerExistsAndConnected(const std::string & username) {
-//    if (m_players->find(username) != m_players->end()) {
-//        return (*m_players)[username]->m_connection && (*m_players)[username]->m_connection->IsOpen();
-//    }
-//
-//    return false;
-//}
-//
-//bool Server::CheckPlayerExists(const std::string & username) {
-//    return m_players->find(username) != m_players->end();
-//}
-//
-//bool Server::CheckPlayerConnected(const std::string & username) {
-//    return (*m_players)[username]->m_connection && (*m_players)[username]->m_connection->IsOpen();
-//}

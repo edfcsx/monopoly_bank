@@ -19,11 +19,12 @@ public:
     std::unordered_map<std::string, std::shared_ptr<Connection>> m_connections;
     std::mutex m_connections_lock;
 
-    std::shared_ptr<std::unordered_map<std::string, Player *>> m_players;
+    std::unordered_map<std::string, std::shared_ptr<Player>> m_players;
     std::mutex m_players_lock;
 public:
     void accept_connection(tcp_socket socket, ConnProtocol p);
     std::shared_ptr<Connection> get_connection(const std::string & ip);
+    std::shared_ptr<Player> get_player(const std::string & ip);
 };
 
 #endif // CONNECTION_MANAGER_H_

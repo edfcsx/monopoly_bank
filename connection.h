@@ -88,6 +88,8 @@ public:
     void send_out_messages();
     std::vector<nlohmann::json> get_in_messages();
     void clear_in_messages();
+
+    void set_playing(bool p);
 private:
     void listen_raw_messages();
     void listen_websocket_messages();
@@ -103,8 +105,6 @@ private:
     void close_websocket(
         connection::status s = connection::status::NORMAL_CLOSURE,
         const std::string & reason = "");
-
-    void set_playing(bool p);
 };
 
 #endif // CONNECTION_H_

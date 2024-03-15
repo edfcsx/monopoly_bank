@@ -199,7 +199,7 @@ void Connection::send_data(const std::string & data, connection::opcode c, conne
 
     // send the m_send_frame
     asio::async_write(*m_sock, asio::buffer(m_send_frame),
-    [on_success](const boost::system::error_code & ec, std::size_t bytes_transferred) {
+    [on_success, data](const boost::system::error_code & ec, std::size_t bytes_transferred) {
         if (ec.value() != 0) {
             cout << "[Server] failed to write message: " << ec.message() << endl;
             return;
@@ -208,7 +208,7 @@ void Connection::send_data(const std::string & data, connection::opcode c, conne
         if (on_success != nullptr)
             on_success();
 
-        std::cout << "[Server] sent message: " << bytes_transferred << " bytes" << std::endl;
+        std::cout << "[Server] sent message: " << data << ", " << bytes_transferred << " bytes" << std::endl;
     });
 }
 

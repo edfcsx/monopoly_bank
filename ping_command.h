@@ -10,19 +10,14 @@ class PingCommand : public Icommand
 {
 public:
     void execute(nlohmann::json data) override {
-        auto & server = Server::getInstance();
+        auto & conn_manager = Server::getInstance().m_connections;
+        auto connection = conn_manager.get_connection(data["ip"]);
 
-        if (data["is_player"]) {
-
-        } else {
-            auto connection = server.m_connections.get_connection(data["ip"]);
-
-            if (connection && connection->is_open()) {
-                connection->push_out_message(nlohmann::json{
-                    { "code", server::actions::pong },
-                    { "message", "Pong!" }
-                });
-            }
+        if (connection && connection->is_open()) {
+            connection->push_out_message(nlohmann::json{
+                { "code", server::actions::pong },
+                { "message", "Pong!" }
+            });
         }
     };
 };

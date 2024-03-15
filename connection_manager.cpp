@@ -1,7 +1,8 @@
 #include "connection_manager.h"
 
 ConnectionManager::ConnectionManager() :
-    m_connections(std::unordered_map<std::string, std::shared_ptr<Connection>>())
+    m_connections(std::unordered_map<std::string, std::shared_ptr<Connection>>()),
+    m_players(std::unordered_map<std::string, std::shared_ptr<Player>>())
 {}
 
 ConnectionManager::~ConnectionManager()
@@ -36,7 +37,7 @@ void ConnectionManager::accept_connection(tcp_socket socket, ConnProtocol p)
         auto * handshake = new WebSocketHandshake(socket, this, [](ptr_socket s, ConnectionManager * self) {
             std::lock_guard<std::mutex> lock(self->m_connections_lock);
 
-           self->m_connections.insert({
+            self->m_connections.insert({
                 s->remote_endpoint().address().to_string(),
                 std::make_shared<Connection>(s, ConnProtocol::WEBSOCKET)
             });
@@ -48,6 +49,14 @@ std::shared_ptr<Connection> ConnectionManager::get_connection(const std::string 
 {
     if (m_connections.find(ip) != m_connections.end())
         return m_connections.at(ip);
+    else
+        return nullptr;
+}
+
+std::shared_ptr<Player> ConnectionManager::get_player(const std::string & ip)
+{
+    if (m_players.find(ip) != m_players.end())
+        return m_players.at(ip);
     else
         return nullptr;
 }
