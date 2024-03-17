@@ -48,7 +48,8 @@ namespace server {
 
     enum protocol : unsigned int {
         raw,
-        websocket
+        websocket,
+        http
     };
 }
 

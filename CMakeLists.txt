@@ -45,6 +45,8 @@ add_executable (${PROJECT_NAME}
         connection_manager.h
         websocket_handshake.cpp
         websocket_handshake.h
+        static_file_server.cpp
+        static_file_server.h
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)

@@ -12,6 +12,7 @@
 #include "json.hpp"
 #include "icommand.h"
 #include "connection_manager.h"
+#include "static_file_server.h"
 
 class Server
 {

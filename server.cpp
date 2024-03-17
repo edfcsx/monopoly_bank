@@ -1,7 +1,4 @@
-#include <iostream>
-#include <memory>
 #include "server.h"
-#include "json.hpp"
 #include "ping_command.h"
 #include "transfer_command.h"
 #include "authenticate_command.h"
@@ -13,7 +10,8 @@ Server::Server() :
     m_acceptors(std::unordered_map<server::protocol, std::unique_ptr<tcp_acceptor>>())
 {
     m_acceptors[server::protocol::raw] = std::make_unique<tcp_acceptor>(m_ios,tcp_endpoint(asio::ip::address_v4::any(), 3333));
-    m_acceptors[server::protocol::websocket] = std::make_unique<tcp_acceptor >(m_ios, tcp_endpoint(asio::ip::address_v4::any(), 4444));
+    m_acceptors[server::protocol::websocket] = std::make_unique<tcp_acceptor>(m_ios, tcp_endpoint(asio::ip::address_v4::any(), 4444));
+    m_acceptors[server::protocol::http] = std::make_unique<tcp_acceptor>(m_ios, tcp_endpoint(asio::ip::address_v4::any(), 80));
 
     m_work = std::make_unique<asio::io_service::work>(m_ios);
 
@@ -83,8 +81,13 @@ void Server::listen(server::protocol protocol)
     acceptor->async_accept(*socket, [this, socket, protocol](const system::error_code & ec) {
         if (ec)
             std::cout << "[Server] failed to accept connection: " << ec.message() << std::endl;
-        else
-            m_connections.accept_connection(socket, protocol);
+        else {
+            if (protocol == server::protocol::http)
+                new StaticFileServer(socket);
+            else
+                m_connections.accept_connection(socket, protocol);
+        }
+
 
         // Init next async accept operation if acceptor has not been stopped yet
         if (!m_isStopped.load())
