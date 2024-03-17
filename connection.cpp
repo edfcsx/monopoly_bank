@@ -64,7 +64,7 @@ void Connection::listen_websocket_messages()
         stream.read((char *)&first_bytes[0], 2);
 
         if (first_bytes[0] < 128) {
-            close_websocket(connection::status::PROTOCOL_ERROR, "unmasked message from www");
+            close_websocket(connection::status::PROTOCOL_ERROR, "unmasked message from client");
             return;
         }
 
