@@ -45,8 +45,10 @@ void Server::Start(uint thread_pool_size)
         m_thread_pool.push_back(std::move(th));
     }
 
-    std::cout << "[Server] server started: " <<
-        "raw: 3333" << " Websocket: 4444" << std::endl;
+    std::cout << "[Server] server started:\n"
+                 "\t\t raw: 3333\n"
+                 "\t\t websocket: 4444\n"
+                 "\t\t static files: 80\n";
 }
 
 void Server::Stop()
@@ -82,12 +84,12 @@ void Server::listen(server::protocol protocol)
         if (ec)
             std::cout << "[Server] failed to accept connection: " << ec.message() << std::endl;
         else {
-            if (protocol == server::protocol::http)
+            if (protocol == server::protocol::http) {
                 new StaticFileServer(socket);
-            else
+            } else {
                 m_connections.accept_connection(socket, protocol);
+            }
         }
-
 
         // Init next async accept operation if acceptor has not been stopped yet
         if (!m_isStopped.load())

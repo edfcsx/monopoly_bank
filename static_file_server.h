@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include <fstream>
+#include <memory>
 #include "networking.h"
 
 class StaticFileServer

@@ -1,7 +1,7 @@
 #include "static_file_server.h"
 
 StaticFileServer::StaticFileServer(tcp_socket socket):
-    m_sock(socket)
+    m_sock(std::move(socket))
 {
     asio::async_read_until(*m_sock, m_request_buf, "\r\n\r\n",
 [this](const system::error_code & ec, std::size_t bytes_transferred) {
@@ -11,17 +11,23 @@ StaticFileServer::StaticFileServer(tcp_socket socket):
 
 void StaticFileServer::on_finish(const system::error_code & ec)
 {
-    if (ec.value() != 0)
-        std::cout << "[Server Client] failed to read request: " << ec.message() << std::endl;
+    m_sock->cancel();
 
-    m_sock->close();
+    boost::system::error_code err;
+    m_sock->close(err);
+
+    if (err.value() != 0)
+        std::cout << "[Server Client] failed to close socket: " << err.message() << std::endl;
+
     delete this;
 }
 
 void StaticFileServer::on_request_received(const system::error_code & ec, std::size_t bytes_transferred)
 {
-    if (ec.value() != 0)
+    if (ec.value() != 0) {
         on_finish(ec);
+        return;
+    }
 
     std::string data;
     std::istream stream(&m_request_buf);
@@ -69,6 +75,8 @@ void StaticFileServer::on_request_received(const system::error_code & ec, std::s
         }
     }
 
+    boost::system::error_code err;
+    m_sock->shutdown(asio::ip::tcp::socket::shutdown_receive, err);
     send_response();
 }
 
@@ -107,14 +115,11 @@ void StaticFileServer::send_response()
 
     std::string ext = file_path.substr(file_path.find_last_of('.') + 1);
 
-    if (ext == "js" || ext == "css") {
-        m_response += "Cache-Control: max-age=31536000\r\n";
-    }
+    m_response += "Cache-Control: no-cache, no-store, must-revalidate\r\n";
+    m_response += "Pragma: no-cache\r\n";
+    m_response += "Expires: 0\r\n";
 
     if (ext == "html") {
-        m_response += "Cache-Control: no-cache, no-store, must-revalidate\r\n";
-        m_response += "Pragma: no-cache\r\n";
-        m_response += "Expires: 0\r\n";
         m_response += "Content-Type: text/html\r\n";
     } else if (ext == "js") {
         m_response += "Content-Type: application/javascript\r\n";
