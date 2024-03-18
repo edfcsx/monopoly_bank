@@ -1,17 +1,44 @@
 <!DOCTYPE html>
 <html lang="ptBr">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" name="viewport" content="width=device-width, height=device-height, initial-scale=1">
     <title>Monopoly Bank</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+    <link href="/css/main.css" rel="stylesheet">
+    <link href="/css/login.css" rel="stylesheet">
 </head>
-<style>
-    span {
-        color: red;
-    }
-</style>
+
 <body>
-    <span>this is a client from monopoly bank IS A GREAT</span>
+    <div class="login">
+        <div class="login__container">
+            <h1 class="login__title">Monopoly Bank</h1>
+
+            <form id="login_form" class="login__form">
+              <div class="login__input">
+                <input id="username" type="text" name="username" placeholder="Usuário" required>
+              </div>
+
+              <div class="login__input">
+                <input id="password" type="password" name="password" placeholder="Senha" required>
+              </div>
+
+              <button class="login__button" type="submit">
+                Entrar
+              </button>
+            </form>
+        </div>
+
+        <div class="login__footer">
+            <h1>
+                Crie um nome de usuário e senha únicos. Na primeira vez, um novo usuário será criado. Lembre-se, é um jogo, então não use informações reais e não compartilhe suas credenciais.
+            </h1>
+
+            <h2>Monopoly Bank, Enjoy Game =]</h2>
+        </div>
+    </div>
 </body>
 
-<script src="main.js"></script>
+<script src="/scripts/main.js"></script>
 </html>

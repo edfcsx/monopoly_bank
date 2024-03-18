@@ -125,6 +125,12 @@ void StaticFileServer::send_response()
         m_response += "Content-Type: application/javascript\r\n";
     } else if (ext == "css") {
         m_response += "Content-Type: text/css\r\n";
+    } else if (ext == "png") {
+        m_response += "Content-Type: image/png\r\n";
+    } else if (ext == "jpg" || ext == "jpeg") {
+        m_response += "Content-Type: image/jpeg\r\n";
+    } else if (ext == "svg") {
+        m_response += "Content-Type: image/svg+xml\r\n";
     } else {
         m_response += "Content-Type: text/plain\r\n";
     }
