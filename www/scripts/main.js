@@ -42,21 +42,65 @@ class PopUp {
         }, duration);
     }
 }
+var connection_actions;
+(function (connection_actions) {
+    connection_actions[connection_actions["unknown"] = 1] = "unknown";
+    connection_actions[connection_actions["need_authenticate"] = 2] = "need_authenticate";
+    connection_actions[connection_actions["authenticate_failed"] = 3] = "authenticate_failed";
+    connection_actions[connection_actions["authenticate"] = 4] = "authenticate";
+    connection_actions[connection_actions["authenticate_success"] = 5] = "authenticate_success";
+    connection_actions[connection_actions["ping"] = 6] = "ping";
+    connection_actions[connection_actions["pong"] = 7] = "pong";
+    connection_actions[connection_actions["send_profile"] = 8] = "send_profile";
+    connection_actions[connection_actions["transfer"] = 9] = "transfer";
+    connection_actions[connection_actions["transfer_success"] = 10] = "transfer_success";
+    connection_actions[connection_actions["transfer_received"] = 11] = "transfer_received";
+    connection_actions[connection_actions["transfer_no_funds"] = 12] = "transfer_no_funds";
+    connection_actions[connection_actions["bad_request"] = 13] = "bad_request";
+})(connection_actions || (connection_actions = {}));
+class Commands {
+}
+class AuthenticateSuccess extends Commands {
+    execute(data) {
+        get_context().pop_up.fire('Bem-vindo!', 'Você foi autenticado com sucesso!', 'success', 3000);
+    }
+}
 class Connection {
     constructor() {
+        this.messages = [];
+        this.commands = {};
         this.socket = new WebSocket("ws://192.168.15.8:4444");
         this.is_open = false;
         this.socket.onopen = () => {
             this.is_open = true;
-            get_context().pop_up.fire('Conexão!', 'Você recebeu uma transferência do jogador Mortadela, lorem ipsum dev alone kaiju', 'error');
         };
         this.socket.onclose = () => {
             this.is_open = false;
         };
-        this.socket.onerror = () => this.is_open = false;
+        this.socket.onerror = () => {
+            this.is_open = false;
+            get_context().pop_up.fire('Conexão', 'Não foi possível conectar ao servidor', 'error', 5000);
+        };
+        this.socket.onmessage = (e) => {
+            this.messages.push(JSON.parse(e.data));
+        };
+        this.messages_worker = setInterval(() => {
+            if (this.messages.length) {
+                const message = this.messages.shift();
+                console.log(message);
+            }
+        }, 33);
+    }
+    create_commands() {
+        this.commands[connection_actions.authenticate_success] = new AuthenticateSuccess();
     }
     isOpen() {
         return this.is_open;
+    }
+    send(code, data) {
+        if (this.isOpen()) {
+            this.socket.send(JSON.stringify(Object.assign({ code }, data)));
+        }
     }
 }
 if (!window.monopoly) {
@@ -75,5 +119,5 @@ _______________________________________________________________________________ 
         username: formData.get('username'),
         password: formData.get('password')
     };
-    console.log('HERE:>', data, get_context().connection.isOpen());
+    get_context().connection.send(connection_actions.authenticate, Object.assign({}, data));
 });

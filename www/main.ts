@@ -6,6 +6,8 @@ interface Context {
     pop_up: PopUp
 }
 
+type json = string;
+
 function get_context(): Context {
     return (window as any).monopoly;
 }
@@ -57,9 +59,48 @@ class PopUp {
     }
 }
 
+enum connection_actions {
+    unknown = 1,
+    need_authenticate,
+    authenticate_failed,
+    authenticate,
+    authenticate_success,
+    ping,
+    pong,
+    send_profile,
+    transfer,
+    transfer_success,
+    transfer_received,
+    transfer_no_funds,
+    bad_request
+}
+
+interface NetworkingMessage {
+    code: connection_actions
+    [key: string]: any
+}
+
+abstract class Commands {
+    abstract execute (data: NetworkingMessage): void;
+}
+
+class AuthenticateSuccess extends Commands {
+    public execute (data: NetworkingMessage) {
+        get_context().pop_up.fire(
+            'Bem-vindo!',
+            'Você foi autenticado com sucesso!',
+            'success',
+            3000
+        )
+    }
+}
+
 class Connection {
     private socket: WebSocket;
     private is_open: boolean;
+    private messages: NetworkingMessage[] = []
+    private messages_worker: any
+    private commands: { [command: number]: Commands } = {}
 
     constructor() {
         this.socket = new WebSocket("ws://192.168.15.8:4444");
@@ -67,18 +108,41 @@ class Connection {
 
         this.socket.onopen = () => {
             this.is_open = true;
-            get_context().pop_up.fire('Conexão!', 'Você recebeu uma transferência do jogador Mortadela, lorem ipsum dev alone kaiju', 'error');
         }
 
         this.socket.onclose = () => {
             this.is_open = false;
         };
 
-        this.socket.onerror = () => this.is_open = false;
+        this.socket.onerror = () => {
+            this.is_open = false
+            get_context().pop_up.fire('Conexão', 'Não foi possível conectar ao servidor', 'error', 5000)
+        };
+
+        this.socket.onmessage = (e) => {
+            this.messages.push(JSON.parse(e.data))
+        }
+
+        this.messages_worker = setInterval(() => {
+            if (this.messages.length) {
+                const message = this.messages.shift()
+                console.log(message)
+            }
+        }, 33)
+    }
+
+    private create_commands () {
+        this.commands[connection_actions.authenticate_success] = new AuthenticateSuccess()
     }
 
     public isOpen (): boolean {
         return this.is_open;
+    }
+
+    public send (code: connection_actions, data: { [key: string]: any }): void {
+        if (this.isOpen()) {
+            this.socket.send(JSON.stringify({ code, ...data }))
+        }
     }
 }
 
@@ -102,5 +166,5 @@ document.getElementById('login_form')?.addEventListener('submit', (e) => {
         password: formData.get('password')
     }
 
-    console.log('HERE:>', data, get_context().connection.isOpen())
+    get_context().connection.send(connection_actions.authenticate, { ...data })
 })
