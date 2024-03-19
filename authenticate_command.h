@@ -30,7 +30,7 @@ public:
                 connection->push_out_message(nlohmann::json{
                     { "code", server::actions::authenticate_success },
                     { "message", "Authenticated!" }
-                });
+                }, data);
 
                 connection->set_playing(true);
             } else {
@@ -38,14 +38,14 @@ public:
                     connection->push_out_message(nlohmann::json{
                         { "code", server::actions::authenticate_success },
                         { "message", "Authenticated!" }
-                    });
+                    }, data);
 
                     connection->set_playing(true);
                 } else {
                     connection->push_out_message(nlohmann::json{
                         { "code", server::actions::authenticate_failed },
                         { "message", "Invalid password!" }
-                    });
+                    }, data);
                 }
             }
         }

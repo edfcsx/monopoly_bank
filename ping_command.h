@@ -17,7 +17,7 @@ public:
             connection->push_out_message(nlohmann::json{
                 { "code", server::actions::pong },
                 { "message", "Pong!" }
-            });
+            }, data);
         }
     };
 };

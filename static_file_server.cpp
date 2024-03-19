@@ -46,6 +46,9 @@ void StaticFileServer::on_request_received(const system::error_code & ec, std::s
     if (file_path == "/")
         file_path = "/index.html";
 
+    if (file_path.find('.') == std::string::npos)
+        file_path += ".html";
+
     std::cout << "[Server Client] requested file: " << file_path << std::endl;
 
     // read headers

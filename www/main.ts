@@ -76,33 +76,82 @@ enum connection_actions {
 }
 
 interface NetworkingMessage {
-    code: connection_actions
+    code: connection_actions,
+    args?: { [key:string]: any }
     [key: string]: any
 }
 
 abstract class Commands {
-    abstract execute (data: NetworkingMessage): void;
+    abstract execute (serverMessage: NetworkingMessage): void;
 }
 
 class AuthenticateSuccess extends Commands {
-    public execute (data: NetworkingMessage) {
+    private callback: Function | undefined
+
+    public execute (serverMessage: NetworkingMessage) {
+        if (!serverMessage.args!.popup_disabled) {
+            get_context().pop_up.fire(
+                'Monopoly Bank',
+                `Bem vindo, ${serverMessage.args!.username}!`,
+                'success',
+                3000,
+            )
+        }
+
+        sessionStorage.setItem('auth', JSON.stringify({
+            username: serverMessage.args!.username,
+            password: serverMessage.args!.password
+        }))
+
+        getLoginButton()?.removeAttribute('disabled')
+
+        if (window.location.pathname != '/bank') {
+            window.location.href = '/bank'
+        } else {
+            if (this.callback) this.callback()
+        }
+    }
+
+    public setCallback (callback: Function) {
+        this.callback = callback
+    }
+}
+
+class AuthenticateFailed extends Commands {
+    public execute (serverMessage: NetworkingMessage) {
         get_context().pop_up.fire(
-            'Bem-vindo!',
-            'Você foi autenticado com sucesso!',
-            'success',
-            3000
+            'Monopoly Bank',
+            'Usuário ou senha incorretos',
+            'error',
+            5000,
         )
+
+        sessionStorage.removeItem('auth')
+        getLoginButton()?.removeAttribute('disabled')
+    }
+}
+
+class ProfileCommand extends Commands {
+    public execute (serverMessage: NetworkingMessage) {
+        console.log(serverMessage)
     }
 }
 
 class Connection {
-    private socket: WebSocket;
-    private is_open: boolean;
+    private socket: WebSocket | null = null;
+    private is_open: boolean = false;
     private messages: NetworkingMessage[] = []
     private messages_worker: any
-    private commands: { [command: number]: Commands } = {}
+    public commands: { [command: number]: Commands } = {}
+    private args_repository: Map<string, { [key: string]: any }> = new Map()
 
     constructor() {
+        this.createSocket()
+        this.createCommands()
+        this.createWorker()
+    }
+
+    private createSocket (): void {
         this.socket = new WebSocket("ws://192.168.15.8:4444");
         this.is_open = false;
 
@@ -120,42 +169,128 @@ class Connection {
         };
 
         this.socket.onmessage = (e) => {
-            this.messages.push(JSON.parse(e.data))
-        }
+            const msg = JSON.parse(e.data) as NetworkingMessage
 
-        this.messages_worker = setInterval(() => {
-            if (this.messages.length) {
-                const message = this.messages.shift()
-                console.log(message)
+            if (msg.id && this.args_repository.has(msg.id)) {
+                const args = this.args_repository.get(msg.id)
+                this.args_repository.delete(msg.id)
+
+                if (args) {
+                    msg.args = args
+                }
             }
-        }, 33)
+
+            this.messages.push(msg)
+
+            if (!this.messages_worker) {
+                this.createWorker()
+            }
+        }
     }
 
-    private create_commands () {
+    public openSocket (): void {
+        if (this.is_open) {
+            this.socket?.close()
+        }
+
+        this.createSocket()
+    }
+
+    private createWorker (): void {
+        this.messages_worker = setInterval(() => {
+            while (this.messages.length) {
+                const message = this.messages.shift()
+
+                if (message) {
+                    const command = this.commands[`${message.code}`]
+                    command.execute(message)
+                }
+            }
+
+            if (!this.messages.length) {
+                clearInterval(this.messages_worker)
+                this.messages_worker = null
+            }
+        }, 10)
+    }
+
+    private createCommands () {
         this.commands[connection_actions.authenticate_success] = new AuthenticateSuccess()
+        this.commands[connection_actions.authenticate_failed] = new AuthenticateFailed()
+        this.commands[connection_actions.send_profile] = new ProfileCommand()
     }
 
     public isOpen (): boolean {
         return this.is_open;
     }
 
-    public send (code: connection_actions, data: { [key: string]: any }): void {
+    public send (data: NetworkingMessage): void {
+
         if (this.isOpen()) {
-            this.socket.send(JSON.stringify({ code, ...data }))
+            const unique_id = create_unique_id()
+
+            if (data.args) {
+                this.args_repository.set(unique_id, data.args)
+            }
+
+            this.socket?.send(JSON.stringify({ ...data, id: unique_id }))
+        } else {
+            console.error('Connection is not open')
         }
     }
 }
 
-if (!(window as any).monopoly) {
-    (window as any).monopoly = {
-        connection: new Connection(),
-        pop_up: new PopUp()
-    } as Context;
+(window as any).monopoly = {
+    connection: new Connection(),
+    pop_up: new PopUp()
+} as Context;
+
+// reconnect connection on change page
+if (window.location.pathname === '/bank') {
+
+    if (!sessionStorage.getItem('auth')) {
+        window.location.href = '/'
+    } else {
+        const context = get_context()
+        if (!context.connection.isOpen()) {
+            context.connection.openSocket()
+        }
+
+        const wait_connection = setInterval(() => {
+            if (context.connection.isOpen()) {
+                clearInterval(wait_connection)
+
+                let user_raw = sessionStorage.getItem('auth')
+
+                if (user_raw) {
+                    const data: { [key: string]: any } = JSON.parse(user_raw)
+                    const { username, password } = data;
+
+                    (context.connection.commands[connection_actions.authenticate_success] as AuthenticateSuccess).setCallback(() => {
+                        context.connection.send({
+                            code: connection_actions.send_profile
+                        })
+                    })
+
+                    context.connection.send({
+                        code: connection_actions.authenticate,
+                        args: { username, password, popup_disabled: true },
+                        username,
+                        password
+                    })
+                }
+            }
+        }, 100)
+    }
 }
 
 /*_______________________________________________________________________________
     this space reserved for login
 _______________________________________________________________________________ */
+
+function getLoginButton() {
+    return document.getElementById('login-dispatch')
+}
 
 document.getElementById('login_form')?.addEventListener('submit', (e) => {
     e.preventDefault()
@@ -166,5 +301,14 @@ document.getElementById('login_form')?.addEventListener('submit', (e) => {
         password: formData.get('password')
     }
 
-    get_context().connection.send(connection_actions.authenticate, { ...data })
+    get_context().connection.send({
+        code: connection_actions.authenticate,
+        args: { ...data },
+        ...data,
+    })
+
+    const button = document.getElementById('login-dispatch')
+
+    if (button)
+        button.setAttribute('disabled', 'true')
 })

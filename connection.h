@@ -83,7 +83,7 @@ public:
     void close_connection();
     [[nodiscard]] bool is_open() const;
     void push_in_message(const std::string & data);
-    void push_out_message(nlohmann::json message);
+    void push_out_message(nlohmann::json message, nlohmann::json input_message);
 
     void send_out_messages();
     std::vector<nlohmann::json> get_in_messages();

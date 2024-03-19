@@ -253,9 +253,13 @@ void Connection::push_in_message(const std::string & data)
     }
 }
 
-void Connection::push_out_message(nlohmann::json message)
+void Connection::push_out_message(nlohmann::json message, nlohmann::json input_message)
 {
     std::lock_guard<std::mutex> lock(m_messages_out_lock);
+
+    if (input_message.contains("id"))
+        message.push_back({ "id", input_message["id"] });
+
     m_messages_out.push_back(message);
 }
 

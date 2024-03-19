@@ -2,6 +2,7 @@
 #include "ping_command.h"
 #include "transfer_command.h"
 #include "authenticate_command.h"
+#include "profile_command.h"
 
 Server::Server() :
     m_ios(asio::io_service {}),
@@ -17,6 +18,7 @@ Server::Server() :
 
     m_commands[server::actions::ping] = std::make_unique<PingCommand>();
     m_commands[server::actions::authenticate] = std::make_unique<AuthenticateCommand>();
+    m_commands[server::actions::send_profile] = std::make_unique<ProfileCommand>();
 }
 
 Server::~Server()
